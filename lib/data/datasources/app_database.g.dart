@@ -28,10 +28,6 @@ class $CategoriesTable extends Categories
     'name',
     aliasedName,
     false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 1,
-      maxTextLength: 50,
-    ),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
@@ -39,15 +35,6 @@ class $CategoriesTable extends Categories
   @override
   late final GeneratedColumn<String> icon = GeneratedColumn<String>(
     'icon',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _colorMeta = const VerificationMeta('color');
-  @override
-  late final GeneratedColumn<String> color = GeneratedColumn<String>(
-    'color',
     aliasedName,
     true,
     type: DriftSqlType.string,
@@ -62,14 +49,28 @@ class $CategoriesTable extends Categories
     aliasedName,
     false,
     type: DriftSqlType.bool,
-    requiredDuringInsert: false,
+    requiredDuringInsert: true,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'CHECK ("is_income" IN (0, 1))',
     ),
-    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta(
+    'isActive',
   );
   @override
-  List<GeneratedColumn> get $columns => [id, name, icon, color, isIncome];
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_active" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, icon, isIncome, isActive];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -99,16 +100,18 @@ class $CategoriesTable extends Categories
         icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
       );
     }
-    if (data.containsKey('color')) {
-      context.handle(
-        _colorMeta,
-        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
-      );
-    }
     if (data.containsKey('is_income')) {
       context.handle(
         _isIncomeMeta,
         isIncome.isAcceptableOrUnknown(data['is_income']!, _isIncomeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_isIncomeMeta);
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
     return context;
@@ -132,13 +135,13 @@ class $CategoriesTable extends Categories
         DriftSqlType.string,
         data['${effectivePrefix}icon'],
       ),
-      color: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}color'],
-      ),
       isIncome: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_income'],
+      )!,
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
       )!,
     );
   }
@@ -153,14 +156,14 @@ class Category extends DataClass implements Insertable<Category> {
   final int id;
   final String name;
   final String? icon;
-  final String? color;
   final bool isIncome;
+  final bool isActive;
   const Category({
     required this.id,
     required this.name,
     this.icon,
-    this.color,
     required this.isIncome,
+    required this.isActive,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -170,10 +173,8 @@ class Category extends DataClass implements Insertable<Category> {
     if (!nullToAbsent || icon != null) {
       map['icon'] = Variable<String>(icon);
     }
-    if (!nullToAbsent || color != null) {
-      map['color'] = Variable<String>(color);
-    }
     map['is_income'] = Variable<bool>(isIncome);
+    map['is_active'] = Variable<bool>(isActive);
     return map;
   }
 
@@ -182,10 +183,8 @@ class Category extends DataClass implements Insertable<Category> {
       id: Value(id),
       name: Value(name),
       icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
-      color: color == null && nullToAbsent
-          ? const Value.absent()
-          : Value(color),
       isIncome: Value(isIncome),
+      isActive: Value(isActive),
     );
   }
 
@@ -198,8 +197,8 @@ class Category extends DataClass implements Insertable<Category> {
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       icon: serializer.fromJson<String?>(json['icon']),
-      color: serializer.fromJson<String?>(json['color']),
       isIncome: serializer.fromJson<bool>(json['isIncome']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
     );
   }
   @override
@@ -209,8 +208,8 @@ class Category extends DataClass implements Insertable<Category> {
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'icon': serializer.toJson<String?>(icon),
-      'color': serializer.toJson<String?>(color),
       'isIncome': serializer.toJson<bool>(isIncome),
+      'isActive': serializer.toJson<bool>(isActive),
     };
   }
 
@@ -218,22 +217,22 @@ class Category extends DataClass implements Insertable<Category> {
     int? id,
     String? name,
     Value<String?> icon = const Value.absent(),
-    Value<String?> color = const Value.absent(),
     bool? isIncome,
+    bool? isActive,
   }) => Category(
     id: id ?? this.id,
     name: name ?? this.name,
     icon: icon.present ? icon.value : this.icon,
-    color: color.present ? color.value : this.color,
     isIncome: isIncome ?? this.isIncome,
+    isActive: isActive ?? this.isActive,
   );
   Category copyWithCompanion(CategoriesCompanion data) {
     return Category(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       icon: data.icon.present ? data.icon.value : this.icon,
-      color: data.color.present ? data.color.value : this.color,
       isIncome: data.isIncome.present ? data.isIncome.value : this.isIncome,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
     );
   }
 
@@ -243,14 +242,14 @@ class Category extends DataClass implements Insertable<Category> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('icon: $icon, ')
-          ..write('color: $color, ')
-          ..write('isIncome: $isIncome')
+          ..write('isIncome: $isIncome, ')
+          ..write('isActive: $isActive')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, icon, color, isIncome);
+  int get hashCode => Object.hash(id, name, icon, isIncome, isActive);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -258,43 +257,44 @@ class Category extends DataClass implements Insertable<Category> {
           other.id == this.id &&
           other.name == this.name &&
           other.icon == this.icon &&
-          other.color == this.color &&
-          other.isIncome == this.isIncome);
+          other.isIncome == this.isIncome &&
+          other.isActive == this.isActive);
 }
 
 class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<int> id;
   final Value<String> name;
   final Value<String?> icon;
-  final Value<String?> color;
   final Value<bool> isIncome;
+  final Value<bool> isActive;
   const CategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.icon = const Value.absent(),
-    this.color = const Value.absent(),
     this.isIncome = const Value.absent(),
+    this.isActive = const Value.absent(),
   });
   CategoriesCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     this.icon = const Value.absent(),
-    this.color = const Value.absent(),
-    this.isIncome = const Value.absent(),
-  }) : name = Value(name);
+    required bool isIncome,
+    this.isActive = const Value.absent(),
+  }) : name = Value(name),
+       isIncome = Value(isIncome);
   static Insertable<Category> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<String>? icon,
-    Expression<String>? color,
     Expression<bool>? isIncome,
+    Expression<bool>? isActive,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (icon != null) 'icon': icon,
-      if (color != null) 'color': color,
       if (isIncome != null) 'is_income': isIncome,
+      if (isActive != null) 'is_active': isActive,
     });
   }
 
@@ -302,15 +302,15 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Value<int>? id,
     Value<String>? name,
     Value<String?>? icon,
-    Value<String?>? color,
     Value<bool>? isIncome,
+    Value<bool>? isActive,
   }) {
     return CategoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       icon: icon ?? this.icon,
-      color: color ?? this.color,
       isIncome: isIncome ?? this.isIncome,
+      isActive: isActive ?? this.isActive,
     );
   }
 
@@ -326,11 +326,11 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     if (icon.present) {
       map['icon'] = Variable<String>(icon.value);
     }
-    if (color.present) {
-      map['color'] = Variable<String>(color.value);
-    }
     if (isIncome.present) {
       map['is_income'] = Variable<bool>(isIncome.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
     }
     return map;
   }
@@ -341,8 +341,8 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('icon: $icon, ')
-          ..write('color: $color, ')
-          ..write('isIncome: $isIncome')
+          ..write('isIncome: $isIncome, ')
+          ..write('isActive: $isActive')
           ..write(')'))
         .toString();
   }
@@ -1256,16 +1256,16 @@ typedef $$CategoriesTableCreateCompanionBuilder =
       Value<int> id,
       required String name,
       Value<String?> icon,
-      Value<String?> color,
-      Value<bool> isIncome,
+      required bool isIncome,
+      Value<bool> isActive,
     });
 typedef $$CategoriesTableUpdateCompanionBuilder =
     CategoriesCompanion Function({
       Value<int> id,
       Value<String> name,
       Value<String?> icon,
-      Value<String?> color,
       Value<bool> isIncome,
+      Value<bool> isActive,
     });
 
 final class $$CategoriesTableReferences
@@ -1318,13 +1318,13 @@ class $$CategoriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get color => $composableBuilder(
-    column: $table.color,
+  ColumnFilters<bool> get isIncome => $composableBuilder(
+    column: $table.isIncome,
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get isIncome => $composableBuilder(
-    column: $table.isIncome,
+  ColumnFilters<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1378,13 +1378,13 @@ class $$CategoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get color => $composableBuilder(
-    column: $table.color,
+  ColumnOrderings<bool> get isIncome => $composableBuilder(
+    column: $table.isIncome,
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get isIncome => $composableBuilder(
-    column: $table.isIncome,
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+    column: $table.isActive,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -1407,11 +1407,11 @@ class $$CategoriesTableAnnotationComposer
   GeneratedColumn<String> get icon =>
       $composableBuilder(column: $table.icon, builder: (column) => column);
 
-  GeneratedColumn<String> get color =>
-      $composableBuilder(column: $table.color, builder: (column) => column);
-
   GeneratedColumn<bool> get isIncome =>
       $composableBuilder(column: $table.isIncome, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
 
   Expression<T> transactionsRefs<T extends Object>(
     Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
@@ -1470,28 +1470,28 @@ class $$CategoriesTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> icon = const Value.absent(),
-                Value<String?> color = const Value.absent(),
                 Value<bool> isIncome = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
               }) => CategoriesCompanion(
                 id: id,
                 name: name,
                 icon: icon,
-                color: color,
                 isIncome: isIncome,
+                isActive: isActive,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required String name,
                 Value<String?> icon = const Value.absent(),
-                Value<String?> color = const Value.absent(),
-                Value<bool> isIncome = const Value.absent(),
+                required bool isIncome,
+                Value<bool> isActive = const Value.absent(),
               }) => CategoriesCompanion.insert(
                 id: id,
                 name: name,
                 icon: icon,
-                color: color,
                 isIncome: isIncome,
+                isActive: isActive,
               ),
           withReferenceMapper: (p0) => p0
               .map(

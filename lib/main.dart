@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'presentation/screens/dashboard_screen.dart';
+import 'presentation/screens/main_screen.dart';
 
 void main() {
   // Riverpod State Management ක්‍රියාත්මක වීමට නම්,
@@ -24,7 +24,7 @@ class PersonalFinanceApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal), // ප්‍රධාන වර්ණය
         useMaterial3: true,
       ),
-      home: const DashboardScreen(), // මුල් පිටුව
+      home: const MainScreen(), // මුල් පිටුව
     );
   }
 }

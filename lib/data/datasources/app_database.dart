@@ -17,26 +17,23 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 1;
 
-  // පළමු වරට Database එක සෑදෙන විට ක්‍රියාත්මක වන කොටස
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
       onCreate: (Migrator m) async {
-        // 1. වගු (Tables) සියල්ල නිර්මාණය කිරීම
         await m.createAll();
 
         // 2. මූලික Categories ඇතුළත් කිරීම (Batch Insert)
         await batch((batch) {
           batch.insertAll(categories, [
-            CategoriesCompanion.insert(name: 'Food & Dining', icon: const Value('restaurant'), isIncome: const Value(false)),
-            CategoriesCompanion.insert(name: 'Transport', icon: const Value('directions_bus'), isIncome: const Value(false)),
-            CategoriesCompanion.insert(name: 'Shopping', icon: const Value('shopping_cart'), isIncome: const Value(false)),
-            CategoriesCompanion.insert(name: 'Salary', icon: const Value('payments'), isIncome: const Value(true)),
-            CategoriesCompanion.insert(name: 'Other Income', icon: const Value('add_card'), isIncome: const Value(true)),
+            CategoriesCompanion.insert(name: 'Food & Dining', icon: const Value('restaurant'), isIncome: false),
+            CategoriesCompanion.insert(name: 'Transport', icon: const Value('directions_bus'), isIncome: false),
+            CategoriesCompanion.insert(name: 'Shopping', icon: const Value('shopping_cart'), isIncome: false),
+            CategoriesCompanion.insert(name: 'Salary', icon: const Value('payments'), isIncome: true),
+            CategoriesCompanion.insert(name: 'Other Income', icon: const Value('add_card'), isIncome: true),
           ]);
         });
 
-        // 3. මූලික Wallet එක ඇතුළත් කිරීම
         await into(accounts).insert(
             AccountsCompanion.insert(
               name: 'My Wallet',

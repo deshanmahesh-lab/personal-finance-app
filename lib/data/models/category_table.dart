@@ -2,8 +2,11 @@ import 'package:drift/drift.dart';
 
 class Categories extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get name => text().withLength(min: 1, max: 50)();
-  TextColumn get icon => text().nullable()(); // Stores icon identifier string
-  TextColumn get color => text().nullable()(); // Stores Hex color code string
-  BoolColumn get isIncome => boolean().withDefault(const Constant(false))();
+  TextColumn get name => text()();
+  TextColumn get icon => text().nullable()();
+  BoolColumn get isIncome => boolean()();
+
+  // අලුතින් එක් කළ තීරුව: Category එක Active ද යන්න සටහන් කරයි
+  // Default අගය true වන බැවින් අලුතින් සාදන සියලු Categories සක්‍රීය (Active) වේ.
+  BoolColumn get isActive => boolean().withDefault(const Constant(true))();
 }
