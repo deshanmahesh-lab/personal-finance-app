@@ -13,7 +13,6 @@ class ManageAccountsScreen extends ConsumerStatefulWidget {
 
 class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
 
-  // ගිණුම් වර්ග සඳහා අයිකන සහ වර්ණ ලබා දීමේ ක්‍රමවේදය
   IconData _getAccountIcon(String type) {
     switch (type.toLowerCase()) {
       case 'bank': return Icons.account_balance_rounded;
@@ -32,7 +31,6 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
     }
   }
 
-  // --- Add / Edit Account Dialog ---
   void _showAddEditAccountDialog(BuildContext context, WidgetRef ref, {Account? accountToEdit}) {
     final isEditMode = accountToEdit != null;
     final nameController = TextEditingController(text: isEditMode ? accountToEdit.name : '');
@@ -56,7 +54,6 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                       Text(isEditMode ? 'Edit Wallet' : 'New Wallet', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 24),
 
-                      // Account Name
                       TextField(
                         controller: nameController,
                         decoration: InputDecoration(
@@ -70,7 +67,6 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Initial Balance (මුලින්ම ඇතුළත් කරන අගය)
                       TextField(
                         controller: balanceController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -84,7 +80,6 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Account Type Dropdown
                       const Text('Wallet Type', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey)),
                       const SizedBox(height: 8),
                       Container(
@@ -110,7 +105,6 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                       ),
                       const SizedBox(height: 32),
 
-                      // Save Button
                       SizedBox(
                         width: double.infinity,
                         height: 50,
@@ -130,15 +124,11 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                                 final updatedAccount = accountToEdit.copyWith(
                                   name: name,
                                   type: selectedType,
-                                  initialBalance: balance, // අපගේ Logic එකට අනුව මෙය Live Balance එකයි
+                                  initialBalance: balance,
                                 );
-                                // Repository එකේ updateAccount ක්‍රමවේදයක් නොමැති නම් මෙතැන දෝෂයක් ආ හැක.
-                                // එබැවින් කෙලින්ම Database එකට ලියමු.
                                 ref.read(accountRepositoryProvider).insertAccount(
                                     AccountsCompanion.insert(id: drift.Value(accountToEdit.id), name: name, type: selectedType, initialBalance: drift.Value(balance))
                                 );
-                                // මෙහිදී insertAccount මගින් replace වීමක් සිදු නොවේ නම් වෙනම Update function එකක් අවශ්‍ය වේ.
-                                // කෙසේ වෙතත් පහසුව සඳහා Account මකා අලුතින් දැමීම වෙනුවට drift.Update භාවිතා කළ හැක.
                               } else {
                                 final newAccount = AccountsCompanion.insert(
                                   name: name,
@@ -163,7 +153,6 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
     );
   }
 
-  // --- Delete Confirm Dialog ---
   Future<bool?> _confirmDeleteAccount(BuildContext context, WidgetRef ref, Account account) async {
     return await showDialog<bool>(
       context: context,
@@ -199,7 +188,6 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // --- Premium Curved Header ---
           SliverAppBar(
             expandedHeight: 120.0,
             floating: false,
@@ -215,8 +203,6 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
               centerTitle: true,
             ),
           ),
-
-          // --- Wallet List ---
           SliverToBoxAdapter(
             child: Transform.translate(
               offset: const Offset(0, -20),
@@ -271,14 +257,12 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                                   child: Row(
                                     children: [
-                                      // Soft Colored Icon
                                       Container(
                                         width: 48, height: 48,
                                         decoration: BoxDecoration(color: accColor.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
                                         child: Icon(_getAccountIcon(account.type), color: accColor, size: 24),
                                       ),
                                       const SizedBox(width: 16),
-                                      // Details
                                       Expanded(
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -289,7 +273,6 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                                           ],
                                         ),
                                       ),
-                                      // Live Balance
                                       Text('Rs. ${account.initialBalance.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                     ],
                                   ),
@@ -309,6 +292,7 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null, // [FIX] "Multiple heroes" දෝෂය වළක්වයි
         elevation: 2,
         backgroundColor: Colors.blue.shade600,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

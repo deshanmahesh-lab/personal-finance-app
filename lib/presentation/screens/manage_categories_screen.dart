@@ -16,7 +16,6 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
 
   @override
   Widget build(BuildContext context) {
-    // පසුබිම ඉතා ළා අළු/සුදු පැහැයකින් තැබීමෙන් Content එක ඉස්මතු වේ
     final backgroundColor = Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.2);
     final primaryColor = _isIncome ? Colors.green.shade600 : Colors.red.shade600;
 
@@ -25,22 +24,17 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 24), // ඉහළින් සුළු පරතරයක් පමණි (මාතෘකාව ඉවත් කර ඇත)
-
-            // --- 1. Premium Sliding Toggles ---
+            const SizedBox(height: 24),
             _buildSlidingToggles(primaryColor),
-
             const SizedBox(height: 16),
-
-            // --- 2. Unified Categories List (Revolut/Apple Wallet Style) ---
             Expanded(
               child: _CategoryList(isIncome: _isIncome),
             ),
           ],
         ),
       ),
-      // --- Flat & Modern FAB ---
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null, // [FIX] "Multiple heroes" දෝෂය වළක්වයි
         elevation: 2,
         backgroundColor: primaryColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -51,7 +45,6 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
     );
   }
 
-  // --- Modern Sliding Toggles ---
   Widget _buildSlidingToggles(Color primaryColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -59,7 +52,7 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
         height: 48,
         decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.6),
-            borderRadius: BorderRadius.circular(12) // නවීන මෘදු කොටු හැඩය
+            borderRadius: BorderRadius.circular(12)
         ),
         child: Stack(
           children: [
@@ -70,7 +63,7 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
               child: FractionallySizedBox(
                   widthFactor: 0.5,
                   child: Container(
-                      margin: const EdgeInsets.all(4), // ඇතුළතින් සුළු පරතරයක්
+                      margin: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(8),
@@ -91,7 +84,6 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
     );
   }
 
-  // --- Premium Add Category Dialog ---
   void _showAddCategoryDialog(BuildContext context, WidgetRef ref, bool isIncome) {
     final nameController = TextEditingController();
     final budgetController = TextEditingController();
@@ -167,7 +159,6 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
   }
 }
 
-// --- Unified Grouped Category List (The World-Class UI) ---
 class _CategoryList extends ConsumerWidget {
   final bool isIncome;
   const _CategoryList({required this.isIncome});
@@ -188,9 +179,8 @@ class _CategoryList extends ConsumerWidget {
           return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.category_rounded, size: 48, color: Colors.grey.shade300), const SizedBox(height: 16), Text('No categories configured.', style: TextStyle(color: Colors.grey.shade500, fontSize: 16))]));
         }
 
-        // සම්පූර්ණ ලැයිස්තුවම එකම සුමට කොටුවක් (Container) තුළට ගෙන ඇත
         return Container(
-          margin: const EdgeInsets.fromLTRB(20, 8, 20, 100), // 100 for FAB
+          margin: const EdgeInsets.fromLTRB(20, 8, 20, 100),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
@@ -203,14 +193,14 @@ class _CategoryList extends ConsumerWidget {
               shrinkWrap: true,
               padding: EdgeInsets.zero,
               itemCount: categories.length,
-              separatorBuilder: (context, index) => Divider(height: 1, indent: 64, endIndent: 16, color: Colors.grey.withOpacity(0.15)), // සියුම් වෙන් කිරීම් රේඛාව
+              separatorBuilder: (context, index) => Divider(height: 1, indent: 64, endIndent: 16, color: Colors.grey.withOpacity(0.15)),
               itemBuilder: (context, index) {
                 final cat = categories[index];
                 final hasBudget = cat.budgetLimit != null && cat.budgetLimit! > 0;
 
                 return Dismissible(
                   key: ValueKey(cat.id),
-                  direction: DismissDirection.endToStart, // Swipe Left to delete
+                  direction: DismissDirection.endToStart,
                   background: Container(
                     color: Colors.red.shade600,
                     alignment: Alignment.centerRight,
@@ -230,14 +220,12 @@ class _CategoryList extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         child: Row(
                           children: [
-                            // Soft Colored Icon
                             Container(
                               width: 44, height: 44,
                               decoration: BoxDecoration(color: themeColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
                               child: Icon(Icons.sell_outlined, color: themeColor, size: 22),
                             ),
                             const SizedBox(width: 16),
-                            // Details
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,7 +238,6 @@ class _CategoryList extends ConsumerWidget {
                                 ],
                               ),
                             ),
-                            // Action Hint Icon
                             Icon(Icons.drag_handle_rounded, color: Colors.grey.shade300, size: 20),
                           ],
                         ),
@@ -266,7 +253,6 @@ class _CategoryList extends ConsumerWidget {
     );
   }
 
-  // --- Premium Edit Dialog ---
   void _showEditCategoryDialog(BuildContext context, WidgetRef ref, Category category, Color themeColor) {
     final nameController = TextEditingController(text: category.name);
     final budgetController = TextEditingController(text: category.budgetLimit != null ? category.budgetLimit!.toStringAsFixed(0) : '');

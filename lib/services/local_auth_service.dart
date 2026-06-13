@@ -6,20 +6,35 @@ class LocalAuthService {
 
   static Future<bool> authenticate() async {
     try {
-      final canAuthenticateWithBiometrics = await _auth.canCheckBiometrics;
-      final canAuthenticate = canAuthenticateWithBiometrics || await _auth.isDeviceSupported();
+      final canCheckBiometrics = await _auth.canCheckBiometrics;
+      final isDeviceSupported = await _auth.isDeviceSupported();
 
-      if (!canAuthenticate) {
+      // [Fix 1] දුරකථනයට කිසිදු Lock එකක් නැත්නම් කෙලින්ම ඇතුළට යවයි
+      if (!canCheckBiometrics && !isDeviceSupported) {
         return true;
       }
 
-      // [වෙනස] Version Conflicts මඟහැරීම සඳහා 'options' පරාමිතිය ඉවත් කර ඇත.
-      // මෙය සියලුම local_auth සංස්කරණ සඳහා දෝෂයකින් තොරව ක්‍රියාත්මක වේ.
+      // [Fix 2] දුරකථනයේ Fingerprint හෝ Face Data Setup කර ඇත්දැයි බැලීම
+      final availableBiometrics = await _auth.getAvailableBiometrics();
+      if (availableBiometrics.isEmpty) {
+        // Emulator එකක වැනි Biometric Setup නොකළ තැනක App එක හිරවීම වළක්වයි
+        return true;
+      }
+
+      // Compiler දෝෂ වළක්වා ගැනීමට options නොමැතිව ධාවනය කරයි
       return await _auth.authenticate(
         localizedReason: 'Please authenticate to access your financial data',
       );
     } on PlatformException catch (e) {
-      print('Auth Error: $e');
+      print('Auth Error: ${e.code} - ${e.message}');
+
+      // [Fix 3] දෝෂය පැමිණියේ Hardware නැතිකම හෝ Lock වීම නිසා නම් App එක Block නොකරයි
+      if (e.code == 'NotAvailable' ||
+          e.code == 'NotEnrolled' ||
+          e.code == 'LockedOut' ||
+          e.code == 'PermanentlyLockedOut') {
+        return true;
+      }
       return false;
     }
   }

@@ -5,7 +5,6 @@ import '../../data/datasources/app_database.dart';
 import '../../data/repositories/account_repository.dart';
 import 'add_transaction_screen.dart';
 
-// Animation ඉවත් කළ බැවින් නැවතත් සරල ConsumerWidget එකක් භාවිතා කර ඇත
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
@@ -14,30 +13,19 @@ class DashboardScreen extends ConsumerWidget {
     final accountRepo = ref.watch(accountRepositoryProvider);
 
     return Scaffold(
-      // පරණ AppBar එක ඉවත් කර ඇත (MainScreen හි Global AppBar එකක් ඇති බැවින්)
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          // --- 1. My Accounts Section (Pin කර ඇත - Scroll නොවේ) ---
           _buildMyAccounts(accountRepo),
-
-          // --- 2. Scrollable Area (Scroll වන කොටස) ---
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 8), // කුඩා පරතරයක්
-
-                  // --- Net Balance Card (දැන් මෙය Scroll වේ) ---
+                  const SizedBox(height: 8),
                   const _CashFlowSummaryCard(),
-
-                  // --- Monthly Budgets ---
                   const _BudgetProgressSection(),
-
-                  // --- Recent Transactions ---
                   _buildRecentTransactions(accountRepo),
                 ],
               ),
@@ -46,6 +34,7 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: null, // [FIX] "Multiple heroes" දෝෂය වළක්වයි
         onPressed: () {
           Navigator.push(
             context,
@@ -57,7 +46,6 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  // --- My Accounts ---
   Widget _buildMyAccounts(AccountRepository repo) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,7 +88,6 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  // --- Recent Transactions ---
   Widget _buildRecentTransactions(AccountRepository repo) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,7 +212,6 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-// --- Summary Card (Animation ඉවත් කර සම්පූර්ණ කාඩ්පත පමණක් පෙන්වයි) ---
 class _CashFlowSummaryCard extends ConsumerWidget {
   const _CashFlowSummaryCard();
 
@@ -299,7 +285,6 @@ class _CashFlowSummaryCard extends ConsumerWidget {
   }
 }
 
-// --- Budget Progress Section ---
 class _BudgetProgressSection extends ConsumerWidget {
   const _BudgetProgressSection();
 
