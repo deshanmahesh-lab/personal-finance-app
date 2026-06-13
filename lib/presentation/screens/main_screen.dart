@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 import 'analytics_screen.dart';
 import 'manage_categories_screen.dart';
+import 'settings_screen.dart'; // [නව වෙනස 1] Settings තිරය සම්බන්ධ කිරීම
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -21,9 +22,32 @@ class _MainScreenState extends State<MainScreen> {
     ManageCategoriesScreen(),
   ];
 
+  // [නව වෙනස 2] තිරයට අදාළ මාතෘකා ලැයිස්තුව (AppBar එක සඳහා)
+  final List<String> _titles = const [
+    'Dashboard',
+    'Analytics',
+    'Categories',
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // [නව වෙනස 3] සැම තිරයකටම පොදු AppBar එකක් එක් කිරීම
+      appBar: AppBar(
+        title: Text(_titles[_selectedIndex]), // තෝරාගත් තිරයට අදාළ නම පෙන්වීම
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              // Settings තිරය වෙත යාම
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          ),
+        ],
+      ),
       // IndexedStack භාවිතා කරන්නේ අප එක් තිරයකින් තව එකකට යන විට
       // පරණ තිරයේ දත්ත Refresh නොවී එලෙසම තබා ගැනීමටයි (State preservation)
       body: IndexedStack(

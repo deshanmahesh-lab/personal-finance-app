@@ -1,10 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:workmanager/workmanager.dart';
+import 'utils/notification_service.dart';
+import 'data/datasources/app_database.dart';
+import 'data/repositories/account_repository.dart';
 import 'presentation/screens/main_screen.dart';
+import 'presentation/providers/theme_provider.dart';
+import 'presentation/screens/lock_screen.dart';
 
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    try {
+      final now = DateTime.now();
+      final lastDayOfMonth = DateTime(now.year, now.month + 1, 0).day;
+
+      if (now.day == lastDayOfMonth && now.hour >= 18) {
+        await NotificationService().init();
+        final db = AppDatabase();
+        final repo = AccountRepository(db);
+
+        final cashFlowStream = repo.watchMonthlyCashFlow(now);
+        final data = await cashFlowStream.first;
+
+        final income = data['income'] ?? 0.0;
+        final expense = data['expense'] ?? 0.0;
+        final balance = income - expense;
+
+        final monthName = _getMonthName(now.month);
+        final title = '📊 $monthName Summary';
+        final body = 'Income: Rs. ${income.toStringAsFixed(0)} | Expense: Rs. ${expense.toStringAsFixed(0)}\nNet Balance: Rs. ${balance.toStringAsFixed(0)}';
+
+        await NotificationService().showMonthlySummary(title, body);
+      }
+    } catch (e) {
+      debugPrint("Background Task Error: $e");
+    }
+    return Future.value(true);
+  });
+}
+
+String _getMonthName(int month) {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return months[month - 1];
+}
+
+// [වෙනස] async ඉවත් කර ඇත.
 void main() {
-  // Riverpod State Management ක්‍රියාත්මක වීමට නම්,
-  // මුළු App එකම ProviderScope එකකින් ආවරණය කිරීම අනිවාර්ය වේ.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // [වෙනස] UI එක Block නොකර Background එකෙන් Services Init වෙන්න වෙනම Function එකකට යොමු කර ඇත
+  _initServicesBackground();
+
   runApp(
     const ProviderScope(
       child: PersonalFinanceApp(),
@@ -12,19 +59,55 @@ void main() {
   );
 }
 
-class PersonalFinanceApp extends StatelessWidget {
+// [අලුත්] Heavy Operations සියල්ල මෙහි වෙනම Run වේ
+Future<void> _initServicesBackground() async {
+  await NotificationService().init();
+  Workmanager().initialize(
+    callbackDispatcher,
+    isInDebugMode: false,
+  );
+  Workmanager().registerPeriodicTask(
+    "monthly_summary_task_id",
+    "monthly_summary_task",
+    frequency: const Duration(hours: 12),
+    constraints: Constraints(
+      networkType: NetworkType.notRequired,
+      requiresBatteryNotLow: true,
+    ),
+  );
+}
+
+class PersonalFinanceApp extends ConsumerWidget {
   const PersonalFinanceApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
+
     return MaterialApp(
-      title: 'NextGen Finance',
-      debugShowCheckedModeBanner: false,
+      title: 'Personal Finance',
+      themeMode: themeMode,
+
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal), // ප්‍රධාන වර්ණය
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
-      home: const MainScreen(), // මුල් පිටුව
+
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+
+      debugShowCheckedModeBanner: false,
+      home: const LockScreen(
+        child: MainScreen(),
+      ),
     );
   }
 }

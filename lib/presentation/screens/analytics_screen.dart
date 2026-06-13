@@ -32,178 +32,272 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
 
   void _prevPeriod() {
     setState(() {
-      if (_isYearlyView) {
-        _currentYear--;
-      } else {
-        _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1, 1);
-      }
+      if (_isYearlyView) _currentYear--;
+      else _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1, 1);
     });
   }
 
   void _nextPeriod() {
     setState(() {
-      if (_isYearlyView) {
-        _currentYear++;
-      } else {
-        _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
-      }
+      if (_isYearlyView) _currentYear++;
+      else _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final backgroundColor = Theme.of(context).colorScheme.surface;
+    final primaryColor = _isIncome ? Colors.green.shade600 : Colors.red.shade600;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Analytics'),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // --- 1. View Type Toggle (Monthly / Yearly) ---
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-            child: SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(value: false, label: Text('Monthly View')),
-                ButtonSegment(value: true, label: Text('Yearly View')),
-              ],
-              selected: {_isYearlyView},
-              onSelectionChanged: (Set<bool> newSelection) {
-                setState(() {
-                  _isYearlyView = newSelection.first;
-                });
-              },
-            ),
-          ),
+      backgroundColor: backgroundColor,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // --- 1. Header & Dynamic Date Selector ---
+            _buildPremiumHeader(primaryColor),
 
-          // --- 2. Income / Expense Toggle ---
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: SegmentedButton<bool>(
-              segments: const [
-                ButtonSegment(value: false, label: Text('Expenses')),
-                ButtonSegment(value: true, label: Text('Income')),
-              ],
-              selected: {_isIncome},
-              onSelectionChanged: (Set<bool> newSelection) {
-                setState(() {
-                  _isIncome = newSelection.first;
-                });
-              },
-            ),
-          ),
+            const SizedBox(height: 20),
 
-          // --- 3. Date / Year Selector ---
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(icon: const Icon(Icons.chevron_left), onPressed: _prevPeriod),
-              SizedBox(
-                width: 150,
-                child: Text(
-                  _isYearlyView
-                      ? '$_currentYear'
-                      : '${_monthNames[_currentMonth.month - 1]} ${_currentMonth.year}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            // --- 2. Premium Sliding Toggles (Glassmorphism Effect) ---
+            _buildSlidingToggles(primaryColor),
+
+            const SizedBox(height: 24),
+
+            // --- 3. Chart & Analytics Area (Card එකක් ඇතුළත) ---
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: _isYearlyView ? _buildYearlyBarChart(primaryColor) : _buildMonthlyPieChart(),
                 ),
               ),
-              IconButton(icon: const Icon(Icons.chevron_right), onPressed: _nextPeriod),
-            ],
-          ),
-          const SizedBox(height: 16),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-          // --- 4. Chart Display (Pie or Bar) ---
-          Expanded(
-            child: _isYearlyView ? _buildYearlyBarChart() : _buildMonthlyPieChart(),
+  // --- Premium Header with Pinned Date Selector ---
+  Widget _buildPremiumHeader(Color primaryColor) {
+    String dateText = _isYearlyView
+        ? 'Year $_currentYear'
+        : '${_monthNames[_currentMonth.month - 1]} ${_currentMonth.year}';
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _isIncome ? 'Income Analytics' : 'Expense Analytics',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(dateText, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+              Container(
+                decoration: BoxDecoration(
+                  color: primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Row(
+                  children: [
+                    IconButton(icon: Icon(Icons.chevron_left_rounded, color: primaryColor), onPressed: _prevPeriod),
+                    IconButton(icon: Icon(Icons.chevron_right_rounded, color: primaryColor), onPressed: _nextPeriod),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // --- මාසික Pie Chart එක සෑදීමේ කේතය (කලින් තිබූ කොටස) ---
+  // --- Modern sliding Toggles ---
+  Widget _buildSlidingToggles(Color primaryColor) {
+    return Column(
+      children: [
+        _buildSingleToggle(
+          title: 'Period:',
+          option1: 'Monthly',
+          option2: 'Yearly',
+          isOption2Selected: _isYearlyView,
+          onChanged: (val) => setState(() => _isYearlyView = val),
+        ),
+        const SizedBox(height: 12),
+        _buildSingleToggle(
+          title: 'Type:',
+          option1: 'Expenses',
+          option2: 'Income',
+          isOption2Selected: _isIncome,
+          activeColor: primaryColor,
+          onChanged: (val) => setState(() => _isIncome = val),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSingleToggle({
+    required String title,
+    required String option1,
+    required String option2,
+    required bool isOption2Selected,
+    required Function(bool) onChanged,
+    Color? activeColor,
+  }) {
+    final themeColor = activeColor ?? Theme.of(context).colorScheme.primary;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        children: [
+          SizedBox(width: 60, child: Text(title, style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey))),
+          Expanded(
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(20)),
+              child: Stack(
+                children: [
+                  AnimatedAlign(
+                    duration: const Duration(milliseconds: 200),
+                    alignment: isOption2Selected ? Alignment.centerRight : Alignment.centerLeft,
+                    child: FractionallySizedBox(widthFactor: 0.5, child: Container(decoration: BoxDecoration(color: themeColor, borderRadius: BorderRadius.circular(20)))),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(child: GestureDetector(onTap: () => onChanged(false), behavior: HitTestBehavior.opaque, child: Center(child: Text(option1, style: TextStyle(fontWeight: FontWeight.bold, color: !isOption2Selected ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant))))),
+                      Expanded(child: GestureDetector(onTap: () => onChanged(true), behavior: HitTestBehavior.opaque, child: Center(child: Text(option2, style: TextStyle(fontWeight: FontWeight.bold, color: isOption2Selected ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant))))),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- මාසික Pie Chart එක සෑදීමේ කේතය (Total මැදට සහ Percentage පේළියට) ---
   Widget _buildMonthlyPieChart() {
     final endMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
-
     return StreamBuilder<Map<String, double>>(
       stream: ref.watch(accountRepositoryProvider).watchCategorySummary(_isIncome, _currentMonth, endMonth),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         final data = snapshot.data ?? {};
-        if (data.isEmpty) return Center(child: Text('No data for this month.', style: TextStyle(color: Colors.grey.shade600)));
+        if (data.isEmpty) return _buildEmptyState('No transactions recorded.');
 
-        final colors = [Colors.blue, Colors.red, Colors.green, Colors.orange, Colors.purple, Colors.teal, Colors.pink, Colors.amber];
+        final colors = [const Color(0xFF6366F1), const Color(0xFF10B981), const Color(0xFFF59E0B), const Color(0xFFEF4444), const Color(0xFF8B5CF6), const Color(0xFFEC4899), const Color(0xFF14B8A6)];
+        double totalAmount = data.values.fold(0, (sum, item) => sum + item);
         int colorIndex = 0;
         final List<PieChartSectionData> sections = [];
-        final List<Widget> indicators = [];
+        final List<Widget> legend = [];
 
         data.forEach((categoryName, amount) {
           final color = colors[colorIndex % colors.length];
-          sections.add(PieChartSectionData(color: color, value: amount, title: '', radius: 60));
-          indicators.add(
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Row(
-                  children: [
-                    Container(width: 16, height: 16, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(categoryName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500))),
-                    Text('Rs. ${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              )
-          );
+          double percent = (totalAmount > 0) ? (amount / totalAmount) * 100 : 0;
+          sections.add(PieChartSectionData(color: color, value: amount, title: '', radius: 50));
+          // [වෙනස 1] Legend tile එක නිවැරදි කර ඇත
+          legend.add(_buildLegendTile(color, categoryName, amount, percent));
           colorIndex++;
         });
 
         return Column(
           children: [
-            SizedBox(height: 250, child: PieChart(PieChartData(sections: sections, centerSpaceRadius: 70, sectionsSpace: 4))),
-            const SizedBox(height: 32),
-            Expanded(child: ListView(padding: const EdgeInsets.symmetric(horizontal: 24), children: indicators)),
+            // [වෙනස 2] Total Text එක මැදට Pin කිරීමට Stack එකක් භාවිතා කර ඇත
+            SizedBox(
+              height: 200, // height එක තරමක් වැඩි කර ඇත
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PieChart(
+                    PieChartData(
+                      sections: sections,
+                      centerSpaceRadius: 65, // මැද ඉඩ වැඩි කර ඇත
+                      sectionsSpace: 3,
+                      startDegreeOffset: -90,
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Total', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                      Text('Rs. ${totalAmount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Divider(),
+            Expanded(child: ListView(padding: const EdgeInsets.symmetric(vertical: 8), children: legend)),
           ],
         );
       },
     );
   }
 
-  // --- අලුත් කොටස: වාර්ෂික Bar Chart එක සෑදීමේ කේතය ---
-  Widget _buildYearlyBarChart() {
+  // [වෙනස 3] Legend tile එකේ UI/UX වැඩි දියුණු කිරීම (Percentage Same Line)
+  Widget _buildLegendTile(Color color, String name, double amount, double percent) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(width: 14, height: 14, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 12),
+          // Category Name සහ Percentage එකම පේළියේ
+          Expanded(
+            child: Row(
+              children: [
+                Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                const SizedBox(width: 8),
+                Text('(${percent.toStringAsFixed(1)}%)', style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w400)),
+              ],
+            ),
+          ),
+          // Amount එක Bold එකට
+          Text('Rs. ${amount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  // --- Yearly Bar Chart ---
+  Widget _buildYearlyBarChart(Color primaryColor) {
     return StreamBuilder<Map<int, double>>(
       stream: ref.watch(accountRepositoryProvider).watchMonthlySummary(_currentYear, _isIncome),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-
         final data = snapshot.data ?? {for (var i = 1; i <= 12; i++) i: 0.0};
-
-        // දත්ත නොමැති දැයි පරීක්ෂා කිරීම
         bool hasData = data.values.any((amount) => amount > 0);
-        if (!hasData) return Center(child: Text('No data for this year.', style: TextStyle(color: Colors.grey.shade600)));
+        if (!hasData) return _buildEmptyState('No data available for $_currentYear.');
 
-        // Bar Chart එක සඳහා දත්ත සකස් කිරීම
         List<BarChartGroupData> barGroups = [];
-        final barColor = _isIncome ? Colors.green.shade600 : Colors.red.shade600;
+        final List<Gradient> barGradients = [
+          LinearGradient(colors: [primaryColor, primaryColor.withOpacity(0.6)], begin: Alignment.bottomCenter, end: Alignment.topCenter)
+        ];
 
         for (int month = 1; month <= 12; month++) {
           final amount = data[month] ?? 0.0;
-          barGroups.add(
-              BarChartGroupData(
-                x: month,
-                barRods: [
-                  BarChartRodData(
-                    toY: amount,
-                    color: barColor,
-                    width: 16,
-                    borderRadius: BorderRadius.circular(4),
-                  )
-                ],
-              )
-          );
+          barGroups.add(BarChartGroupData(x: month, barRods: [BarChartRodData(toY: amount, gradient: barGradients[0], width: 14, borderRadius: BorderRadius.circular(4))]));
         }
 
         return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 32, 16, 16),
+          padding: const EdgeInsets.only(top: 16, right: 8),
           child: BarChart(
             BarChartData(
               alignment: BarChartAlignment.spaceAround,
@@ -222,8 +316,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                       final index = value.toInt() - 1;
                       if (index >= 0 && index < 12) {
                         return Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(monthInitials[index], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(monthInitials[index], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))
                         );
                       }
                       return const Text('');
@@ -233,11 +327,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    reservedSize: 40,
+                    reservedSize: 42,
                     getTitlesWidget: (value, meta) {
                       if (value == 0) return const Text('');
-                      // අගයන් කෙටි කර පෙන්වීම (උදා: 1000 -> 1k)
-                      return Text('${(value / 1000).toStringAsFixed(0)}k', style: const TextStyle(fontSize: 10));
+                      return Text('${(value / 1000).toStringAsFixed(0)}k', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey));
                     },
                   ),
                 ),
@@ -246,6 +339,19 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.query_stats_rounded, size: 64, color: Colors.grey.shade400),
+          const SizedBox(height: 16),
+          Text(message, style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
+        ],
+      ),
     );
   }
 }

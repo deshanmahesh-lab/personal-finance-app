@@ -69,8 +69,26 @@ class $CategoriesTable extends Categories
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _budgetLimitMeta = const VerificationMeta(
+    'budgetLimit',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, icon, isIncome, isActive];
+  late final GeneratedColumn<double> budgetLimit = GeneratedColumn<double>(
+    'budget_limit',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    icon,
+    isIncome,
+    isActive,
+    budgetLimit,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -114,6 +132,15 @@ class $CategoriesTable extends Categories
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('budget_limit')) {
+      context.handle(
+        _budgetLimitMeta,
+        budgetLimit.isAcceptableOrUnknown(
+          data['budget_limit']!,
+          _budgetLimitMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -143,6 +170,10 @@ class $CategoriesTable extends Categories
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      budgetLimit: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}budget_limit'],
+      ),
     );
   }
 
@@ -158,12 +189,14 @@ class Category extends DataClass implements Insertable<Category> {
   final String? icon;
   final bool isIncome;
   final bool isActive;
+  final double? budgetLimit;
   const Category({
     required this.id,
     required this.name,
     this.icon,
     required this.isIncome,
     required this.isActive,
+    this.budgetLimit,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -175,6 +208,9 @@ class Category extends DataClass implements Insertable<Category> {
     }
     map['is_income'] = Variable<bool>(isIncome);
     map['is_active'] = Variable<bool>(isActive);
+    if (!nullToAbsent || budgetLimit != null) {
+      map['budget_limit'] = Variable<double>(budgetLimit);
+    }
     return map;
   }
 
@@ -185,6 +221,9 @@ class Category extends DataClass implements Insertable<Category> {
       icon: icon == null && nullToAbsent ? const Value.absent() : Value(icon),
       isIncome: Value(isIncome),
       isActive: Value(isActive),
+      budgetLimit: budgetLimit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(budgetLimit),
     );
   }
 
@@ -199,6 +238,7 @@ class Category extends DataClass implements Insertable<Category> {
       icon: serializer.fromJson<String?>(json['icon']),
       isIncome: serializer.fromJson<bool>(json['isIncome']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      budgetLimit: serializer.fromJson<double?>(json['budgetLimit']),
     );
   }
   @override
@@ -210,6 +250,7 @@ class Category extends DataClass implements Insertable<Category> {
       'icon': serializer.toJson<String?>(icon),
       'isIncome': serializer.toJson<bool>(isIncome),
       'isActive': serializer.toJson<bool>(isActive),
+      'budgetLimit': serializer.toJson<double?>(budgetLimit),
     };
   }
 
@@ -219,12 +260,14 @@ class Category extends DataClass implements Insertable<Category> {
     Value<String?> icon = const Value.absent(),
     bool? isIncome,
     bool? isActive,
+    Value<double?> budgetLimit = const Value.absent(),
   }) => Category(
     id: id ?? this.id,
     name: name ?? this.name,
     icon: icon.present ? icon.value : this.icon,
     isIncome: isIncome ?? this.isIncome,
     isActive: isActive ?? this.isActive,
+    budgetLimit: budgetLimit.present ? budgetLimit.value : this.budgetLimit,
   );
   Category copyWithCompanion(CategoriesCompanion data) {
     return Category(
@@ -233,6 +276,9 @@ class Category extends DataClass implements Insertable<Category> {
       icon: data.icon.present ? data.icon.value : this.icon,
       isIncome: data.isIncome.present ? data.isIncome.value : this.isIncome,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      budgetLimit: data.budgetLimit.present
+          ? data.budgetLimit.value
+          : this.budgetLimit,
     );
   }
 
@@ -243,13 +289,15 @@ class Category extends DataClass implements Insertable<Category> {
           ..write('name: $name, ')
           ..write('icon: $icon, ')
           ..write('isIncome: $isIncome, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('budgetLimit: $budgetLimit')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, icon, isIncome, isActive);
+  int get hashCode =>
+      Object.hash(id, name, icon, isIncome, isActive, budgetLimit);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -258,7 +306,8 @@ class Category extends DataClass implements Insertable<Category> {
           other.name == this.name &&
           other.icon == this.icon &&
           other.isIncome == this.isIncome &&
-          other.isActive == this.isActive);
+          other.isActive == this.isActive &&
+          other.budgetLimit == this.budgetLimit);
 }
 
 class CategoriesCompanion extends UpdateCompanion<Category> {
@@ -267,12 +316,14 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
   final Value<String?> icon;
   final Value<bool> isIncome;
   final Value<bool> isActive;
+  final Value<double?> budgetLimit;
   const CategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.icon = const Value.absent(),
     this.isIncome = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.budgetLimit = const Value.absent(),
   });
   CategoriesCompanion.insert({
     this.id = const Value.absent(),
@@ -280,6 +331,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     this.icon = const Value.absent(),
     required bool isIncome,
     this.isActive = const Value.absent(),
+    this.budgetLimit = const Value.absent(),
   }) : name = Value(name),
        isIncome = Value(isIncome);
   static Insertable<Category> custom({
@@ -288,6 +340,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Expression<String>? icon,
     Expression<bool>? isIncome,
     Expression<bool>? isActive,
+    Expression<double>? budgetLimit,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -295,6 +348,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
       if (icon != null) 'icon': icon,
       if (isIncome != null) 'is_income': isIncome,
       if (isActive != null) 'is_active': isActive,
+      if (budgetLimit != null) 'budget_limit': budgetLimit,
     });
   }
 
@@ -304,6 +358,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     Value<String?>? icon,
     Value<bool>? isIncome,
     Value<bool>? isActive,
+    Value<double?>? budgetLimit,
   }) {
     return CategoriesCompanion(
       id: id ?? this.id,
@@ -311,6 +366,7 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
       icon: icon ?? this.icon,
       isIncome: isIncome ?? this.isIncome,
       isActive: isActive ?? this.isActive,
+      budgetLimit: budgetLimit ?? this.budgetLimit,
     );
   }
 
@@ -332,6 +388,9 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (budgetLimit.present) {
+      map['budget_limit'] = Variable<double>(budgetLimit.value);
+    }
     return map;
   }
 
@@ -342,7 +401,8 @@ class CategoriesCompanion extends UpdateCompanion<Category> {
           ..write('name: $name, ')
           ..write('icon: $icon, ')
           ..write('isIncome: $isIncome, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('budgetLimit: $budgetLimit')
           ..write(')'))
         .toString();
   }
@@ -677,10 +737,6 @@ class $TransactionsTable extends Transactions
     'description',
     aliasedName,
     false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 1,
-      maxTextLength: 255,
-    ),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
@@ -702,20 +758,6 @@ class $TransactionsTable extends Transactions
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
-    'categoryId',
-  );
-  @override
-  late final GeneratedColumn<int> categoryId = GeneratedColumn<int>(
-    'category_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES categories (id)',
-    ),
-  );
   static const VerificationMeta _accountIdMeta = const VerificationMeta(
     'accountId',
   );
@@ -730,12 +772,40 @@ class $TransactionsTable extends Transactions
       'REFERENCES accounts (id)',
     ),
   );
-  static const VerificationMeta _toAccountIdMeta = const VerificationMeta(
-    'toAccountId',
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
   );
   @override
-  late final GeneratedColumn<int> toAccountId = GeneratedColumn<int>(
-    'to_account_id',
+  late final GeneratedColumn<int> categoryId = GeneratedColumn<int>(
+    'category_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES categories (id)',
+    ),
+  );
+  static const VerificationMeta _isTransferMeta = const VerificationMeta(
+    'isTransfer',
+  );
+  @override
+  late final GeneratedColumn<bool> isTransfer = GeneratedColumn<bool>(
+    'is_transfer',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_transfer" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _transferToAccountIdMeta =
+      const VerificationMeta('transferToAccountId');
+  @override
+  late final GeneratedColumn<int> transferToAccountId = GeneratedColumn<int>(
+    'transfer_to_account_id',
     aliasedName,
     true,
     type: DriftSqlType.int,
@@ -759,15 +829,18 @@ class $TransactionsTable extends Transactions
     ),
     defaultValue: const Constant(false),
   );
-  static const VerificationMeta _parentTransactionIdMeta =
-      const VerificationMeta('parentTransactionId');
+  static const VerificationMeta _refundedTransactionIdMeta =
+      const VerificationMeta('refundedTransactionId');
   @override
-  late final GeneratedColumn<int> parentTransactionId = GeneratedColumn<int>(
-    'parent_transaction_id',
+  late final GeneratedColumn<int> refundedTransactionId = GeneratedColumn<int>(
+    'refunded_transaction_id',
     aliasedName,
     true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES transactions (id)',
+    ),
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -775,11 +848,12 @@ class $TransactionsTable extends Transactions
     description,
     amount,
     date,
-    categoryId,
     accountId,
-    toAccountId,
+    categoryId,
+    isTransfer,
+    transferToAccountId,
     isRefund,
-    parentTransactionId,
+    refundedTransactionId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -823,12 +897,6 @@ class $TransactionsTable extends Transactions
     } else if (isInserting) {
       context.missing(_dateMeta);
     }
-    if (data.containsKey('category_id')) {
-      context.handle(
-        _categoryIdMeta,
-        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
-      );
-    }
     if (data.containsKey('account_id')) {
       context.handle(
         _accountIdMeta,
@@ -837,12 +905,24 @@ class $TransactionsTable extends Transactions
     } else if (isInserting) {
       context.missing(_accountIdMeta);
     }
-    if (data.containsKey('to_account_id')) {
+    if (data.containsKey('category_id')) {
       context.handle(
-        _toAccountIdMeta,
-        toAccountId.isAcceptableOrUnknown(
-          data['to_account_id']!,
-          _toAccountIdMeta,
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
+      );
+    }
+    if (data.containsKey('is_transfer')) {
+      context.handle(
+        _isTransferMeta,
+        isTransfer.isAcceptableOrUnknown(data['is_transfer']!, _isTransferMeta),
+      );
+    }
+    if (data.containsKey('transfer_to_account_id')) {
+      context.handle(
+        _transferToAccountIdMeta,
+        transferToAccountId.isAcceptableOrUnknown(
+          data['transfer_to_account_id']!,
+          _transferToAccountIdMeta,
         ),
       );
     }
@@ -852,12 +932,12 @@ class $TransactionsTable extends Transactions
         isRefund.isAcceptableOrUnknown(data['is_refund']!, _isRefundMeta),
       );
     }
-    if (data.containsKey('parent_transaction_id')) {
+    if (data.containsKey('refunded_transaction_id')) {
       context.handle(
-        _parentTransactionIdMeta,
-        parentTransactionId.isAcceptableOrUnknown(
-          data['parent_transaction_id']!,
-          _parentTransactionIdMeta,
+        _refundedTransactionIdMeta,
+        refundedTransactionId.isAcceptableOrUnknown(
+          data['refunded_transaction_id']!,
+          _refundedTransactionIdMeta,
         ),
       );
     }
@@ -886,25 +966,29 @@ class $TransactionsTable extends Transactions
         DriftSqlType.dateTime,
         data['${effectivePrefix}date'],
       )!,
-      categoryId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}category_id'],
-      ),
       accountId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}account_id'],
       )!,
-      toAccountId: attachedDatabase.typeMapping.read(
+      categoryId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}to_account_id'],
+        data['${effectivePrefix}category_id'],
+      ),
+      isTransfer: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_transfer'],
+      )!,
+      transferToAccountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}transfer_to_account_id'],
       ),
       isRefund: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_refund'],
       )!,
-      parentTransactionId: attachedDatabase.typeMapping.read(
+      refundedTransactionId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}parent_transaction_id'],
+        data['${effectivePrefix}refunded_transaction_id'],
       ),
     );
   }
@@ -920,21 +1004,23 @@ class Transaction extends DataClass implements Insertable<Transaction> {
   final String description;
   final double amount;
   final DateTime date;
-  final int? categoryId;
   final int accountId;
-  final int? toAccountId;
+  final int? categoryId;
+  final bool isTransfer;
+  final int? transferToAccountId;
   final bool isRefund;
-  final int? parentTransactionId;
+  final int? refundedTransactionId;
   const Transaction({
     required this.id,
     required this.description,
     required this.amount,
     required this.date,
-    this.categoryId,
     required this.accountId,
-    this.toAccountId,
+    this.categoryId,
+    required this.isTransfer,
+    this.transferToAccountId,
     required this.isRefund,
-    this.parentTransactionId,
+    this.refundedTransactionId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -943,16 +1029,17 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     map['description'] = Variable<String>(description);
     map['amount'] = Variable<double>(amount);
     map['date'] = Variable<DateTime>(date);
+    map['account_id'] = Variable<int>(accountId);
     if (!nullToAbsent || categoryId != null) {
       map['category_id'] = Variable<int>(categoryId);
     }
-    map['account_id'] = Variable<int>(accountId);
-    if (!nullToAbsent || toAccountId != null) {
-      map['to_account_id'] = Variable<int>(toAccountId);
+    map['is_transfer'] = Variable<bool>(isTransfer);
+    if (!nullToAbsent || transferToAccountId != null) {
+      map['transfer_to_account_id'] = Variable<int>(transferToAccountId);
     }
     map['is_refund'] = Variable<bool>(isRefund);
-    if (!nullToAbsent || parentTransactionId != null) {
-      map['parent_transaction_id'] = Variable<int>(parentTransactionId);
+    if (!nullToAbsent || refundedTransactionId != null) {
+      map['refunded_transaction_id'] = Variable<int>(refundedTransactionId);
     }
     return map;
   }
@@ -963,17 +1050,18 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       description: Value(description),
       amount: Value(amount),
       date: Value(date),
+      accountId: Value(accountId),
       categoryId: categoryId == null && nullToAbsent
           ? const Value.absent()
           : Value(categoryId),
-      accountId: Value(accountId),
-      toAccountId: toAccountId == null && nullToAbsent
+      isTransfer: Value(isTransfer),
+      transferToAccountId: transferToAccountId == null && nullToAbsent
           ? const Value.absent()
-          : Value(toAccountId),
+          : Value(transferToAccountId),
       isRefund: Value(isRefund),
-      parentTransactionId: parentTransactionId == null && nullToAbsent
+      refundedTransactionId: refundedTransactionId == null && nullToAbsent
           ? const Value.absent()
-          : Value(parentTransactionId),
+          : Value(refundedTransactionId),
     );
   }
 
@@ -987,12 +1075,15 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       description: serializer.fromJson<String>(json['description']),
       amount: serializer.fromJson<double>(json['amount']),
       date: serializer.fromJson<DateTime>(json['date']),
-      categoryId: serializer.fromJson<int?>(json['categoryId']),
       accountId: serializer.fromJson<int>(json['accountId']),
-      toAccountId: serializer.fromJson<int?>(json['toAccountId']),
+      categoryId: serializer.fromJson<int?>(json['categoryId']),
+      isTransfer: serializer.fromJson<bool>(json['isTransfer']),
+      transferToAccountId: serializer.fromJson<int?>(
+        json['transferToAccountId'],
+      ),
       isRefund: serializer.fromJson<bool>(json['isRefund']),
-      parentTransactionId: serializer.fromJson<int?>(
-        json['parentTransactionId'],
+      refundedTransactionId: serializer.fromJson<int?>(
+        json['refundedTransactionId'],
       ),
     );
   }
@@ -1004,11 +1095,12 @@ class Transaction extends DataClass implements Insertable<Transaction> {
       'description': serializer.toJson<String>(description),
       'amount': serializer.toJson<double>(amount),
       'date': serializer.toJson<DateTime>(date),
-      'categoryId': serializer.toJson<int?>(categoryId),
       'accountId': serializer.toJson<int>(accountId),
-      'toAccountId': serializer.toJson<int?>(toAccountId),
+      'categoryId': serializer.toJson<int?>(categoryId),
+      'isTransfer': serializer.toJson<bool>(isTransfer),
+      'transferToAccountId': serializer.toJson<int?>(transferToAccountId),
       'isRefund': serializer.toJson<bool>(isRefund),
-      'parentTransactionId': serializer.toJson<int?>(parentTransactionId),
+      'refundedTransactionId': serializer.toJson<int?>(refundedTransactionId),
     };
   }
 
@@ -1017,23 +1109,27 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     String? description,
     double? amount,
     DateTime? date,
-    Value<int?> categoryId = const Value.absent(),
     int? accountId,
-    Value<int?> toAccountId = const Value.absent(),
+    Value<int?> categoryId = const Value.absent(),
+    bool? isTransfer,
+    Value<int?> transferToAccountId = const Value.absent(),
     bool? isRefund,
-    Value<int?> parentTransactionId = const Value.absent(),
+    Value<int?> refundedTransactionId = const Value.absent(),
   }) => Transaction(
     id: id ?? this.id,
     description: description ?? this.description,
     amount: amount ?? this.amount,
     date: date ?? this.date,
-    categoryId: categoryId.present ? categoryId.value : this.categoryId,
     accountId: accountId ?? this.accountId,
-    toAccountId: toAccountId.present ? toAccountId.value : this.toAccountId,
+    categoryId: categoryId.present ? categoryId.value : this.categoryId,
+    isTransfer: isTransfer ?? this.isTransfer,
+    transferToAccountId: transferToAccountId.present
+        ? transferToAccountId.value
+        : this.transferToAccountId,
     isRefund: isRefund ?? this.isRefund,
-    parentTransactionId: parentTransactionId.present
-        ? parentTransactionId.value
-        : this.parentTransactionId,
+    refundedTransactionId: refundedTransactionId.present
+        ? refundedTransactionId.value
+        : this.refundedTransactionId,
   );
   Transaction copyWithCompanion(TransactionsCompanion data) {
     return Transaction(
@@ -1043,17 +1139,20 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           : this.description,
       amount: data.amount.present ? data.amount.value : this.amount,
       date: data.date.present ? data.date.value : this.date,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
       categoryId: data.categoryId.present
           ? data.categoryId.value
           : this.categoryId,
-      accountId: data.accountId.present ? data.accountId.value : this.accountId,
-      toAccountId: data.toAccountId.present
-          ? data.toAccountId.value
-          : this.toAccountId,
+      isTransfer: data.isTransfer.present
+          ? data.isTransfer.value
+          : this.isTransfer,
+      transferToAccountId: data.transferToAccountId.present
+          ? data.transferToAccountId.value
+          : this.transferToAccountId,
       isRefund: data.isRefund.present ? data.isRefund.value : this.isRefund,
-      parentTransactionId: data.parentTransactionId.present
-          ? data.parentTransactionId.value
-          : this.parentTransactionId,
+      refundedTransactionId: data.refundedTransactionId.present
+          ? data.refundedTransactionId.value
+          : this.refundedTransactionId,
     );
   }
 
@@ -1064,11 +1163,12 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           ..write('description: $description, ')
           ..write('amount: $amount, ')
           ..write('date: $date, ')
-          ..write('categoryId: $categoryId, ')
           ..write('accountId: $accountId, ')
-          ..write('toAccountId: $toAccountId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('isTransfer: $isTransfer, ')
+          ..write('transferToAccountId: $transferToAccountId, ')
           ..write('isRefund: $isRefund, ')
-          ..write('parentTransactionId: $parentTransactionId')
+          ..write('refundedTransactionId: $refundedTransactionId')
           ..write(')'))
         .toString();
   }
@@ -1079,11 +1179,12 @@ class Transaction extends DataClass implements Insertable<Transaction> {
     description,
     amount,
     date,
-    categoryId,
     accountId,
-    toAccountId,
+    categoryId,
+    isTransfer,
+    transferToAccountId,
     isRefund,
-    parentTransactionId,
+    refundedTransactionId,
   );
   @override
   bool operator ==(Object other) =>
@@ -1093,11 +1194,12 @@ class Transaction extends DataClass implements Insertable<Transaction> {
           other.description == this.description &&
           other.amount == this.amount &&
           other.date == this.date &&
-          other.categoryId == this.categoryId &&
           other.accountId == this.accountId &&
-          other.toAccountId == this.toAccountId &&
+          other.categoryId == this.categoryId &&
+          other.isTransfer == this.isTransfer &&
+          other.transferToAccountId == this.transferToAccountId &&
           other.isRefund == this.isRefund &&
-          other.parentTransactionId == this.parentTransactionId);
+          other.refundedTransactionId == this.refundedTransactionId);
 }
 
 class TransactionsCompanion extends UpdateCompanion<Transaction> {
@@ -1105,32 +1207,35 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
   final Value<String> description;
   final Value<double> amount;
   final Value<DateTime> date;
-  final Value<int?> categoryId;
   final Value<int> accountId;
-  final Value<int?> toAccountId;
+  final Value<int?> categoryId;
+  final Value<bool> isTransfer;
+  final Value<int?> transferToAccountId;
   final Value<bool> isRefund;
-  final Value<int?> parentTransactionId;
+  final Value<int?> refundedTransactionId;
   const TransactionsCompanion({
     this.id = const Value.absent(),
     this.description = const Value.absent(),
     this.amount = const Value.absent(),
     this.date = const Value.absent(),
-    this.categoryId = const Value.absent(),
     this.accountId = const Value.absent(),
-    this.toAccountId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.isTransfer = const Value.absent(),
+    this.transferToAccountId = const Value.absent(),
     this.isRefund = const Value.absent(),
-    this.parentTransactionId = const Value.absent(),
+    this.refundedTransactionId = const Value.absent(),
   });
   TransactionsCompanion.insert({
     this.id = const Value.absent(),
     required String description,
     required double amount,
     required DateTime date,
-    this.categoryId = const Value.absent(),
     required int accountId,
-    this.toAccountId = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.isTransfer = const Value.absent(),
+    this.transferToAccountId = const Value.absent(),
     this.isRefund = const Value.absent(),
-    this.parentTransactionId = const Value.absent(),
+    this.refundedTransactionId = const Value.absent(),
   }) : description = Value(description),
        amount = Value(amount),
        date = Value(date),
@@ -1140,23 +1245,26 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Expression<String>? description,
     Expression<double>? amount,
     Expression<DateTime>? date,
-    Expression<int>? categoryId,
     Expression<int>? accountId,
-    Expression<int>? toAccountId,
+    Expression<int>? categoryId,
+    Expression<bool>? isTransfer,
+    Expression<int>? transferToAccountId,
     Expression<bool>? isRefund,
-    Expression<int>? parentTransactionId,
+    Expression<int>? refundedTransactionId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (description != null) 'description': description,
       if (amount != null) 'amount': amount,
       if (date != null) 'date': date,
-      if (categoryId != null) 'category_id': categoryId,
       if (accountId != null) 'account_id': accountId,
-      if (toAccountId != null) 'to_account_id': toAccountId,
+      if (categoryId != null) 'category_id': categoryId,
+      if (isTransfer != null) 'is_transfer': isTransfer,
+      if (transferToAccountId != null)
+        'transfer_to_account_id': transferToAccountId,
       if (isRefund != null) 'is_refund': isRefund,
-      if (parentTransactionId != null)
-        'parent_transaction_id': parentTransactionId,
+      if (refundedTransactionId != null)
+        'refunded_transaction_id': refundedTransactionId,
     });
   }
 
@@ -1165,22 +1273,25 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     Value<String>? description,
     Value<double>? amount,
     Value<DateTime>? date,
-    Value<int?>? categoryId,
     Value<int>? accountId,
-    Value<int?>? toAccountId,
+    Value<int?>? categoryId,
+    Value<bool>? isTransfer,
+    Value<int?>? transferToAccountId,
     Value<bool>? isRefund,
-    Value<int?>? parentTransactionId,
+    Value<int?>? refundedTransactionId,
   }) {
     return TransactionsCompanion(
       id: id ?? this.id,
       description: description ?? this.description,
       amount: amount ?? this.amount,
       date: date ?? this.date,
-      categoryId: categoryId ?? this.categoryId,
       accountId: accountId ?? this.accountId,
-      toAccountId: toAccountId ?? this.toAccountId,
+      categoryId: categoryId ?? this.categoryId,
+      isTransfer: isTransfer ?? this.isTransfer,
+      transferToAccountId: transferToAccountId ?? this.transferToAccountId,
       isRefund: isRefund ?? this.isRefund,
-      parentTransactionId: parentTransactionId ?? this.parentTransactionId,
+      refundedTransactionId:
+          refundedTransactionId ?? this.refundedTransactionId,
     );
   }
 
@@ -1199,20 +1310,25 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
     if (date.present) {
       map['date'] = Variable<DateTime>(date.value);
     }
-    if (categoryId.present) {
-      map['category_id'] = Variable<int>(categoryId.value);
-    }
     if (accountId.present) {
       map['account_id'] = Variable<int>(accountId.value);
     }
-    if (toAccountId.present) {
-      map['to_account_id'] = Variable<int>(toAccountId.value);
+    if (categoryId.present) {
+      map['category_id'] = Variable<int>(categoryId.value);
+    }
+    if (isTransfer.present) {
+      map['is_transfer'] = Variable<bool>(isTransfer.value);
+    }
+    if (transferToAccountId.present) {
+      map['transfer_to_account_id'] = Variable<int>(transferToAccountId.value);
     }
     if (isRefund.present) {
       map['is_refund'] = Variable<bool>(isRefund.value);
     }
-    if (parentTransactionId.present) {
-      map['parent_transaction_id'] = Variable<int>(parentTransactionId.value);
+    if (refundedTransactionId.present) {
+      map['refunded_transaction_id'] = Variable<int>(
+        refundedTransactionId.value,
+      );
     }
     return map;
   }
@@ -1224,11 +1340,12 @@ class TransactionsCompanion extends UpdateCompanion<Transaction> {
           ..write('description: $description, ')
           ..write('amount: $amount, ')
           ..write('date: $date, ')
-          ..write('categoryId: $categoryId, ')
           ..write('accountId: $accountId, ')
-          ..write('toAccountId: $toAccountId, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('isTransfer: $isTransfer, ')
+          ..write('transferToAccountId: $transferToAccountId, ')
           ..write('isRefund: $isRefund, ')
-          ..write('parentTransactionId: $parentTransactionId')
+          ..write('refundedTransactionId: $refundedTransactionId')
           ..write(')'))
         .toString();
   }
@@ -1258,6 +1375,7 @@ typedef $$CategoriesTableCreateCompanionBuilder =
       Value<String?> icon,
       required bool isIncome,
       Value<bool> isActive,
+      Value<double?> budgetLimit,
     });
 typedef $$CategoriesTableUpdateCompanionBuilder =
     CategoriesCompanion Function({
@@ -1266,6 +1384,7 @@ typedef $$CategoriesTableUpdateCompanionBuilder =
       Value<String?> icon,
       Value<bool> isIncome,
       Value<bool> isActive,
+      Value<double?> budgetLimit,
     });
 
 final class $$CategoriesTableReferences
@@ -1328,6 +1447,11 @@ class $$CategoriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<double> get budgetLimit => $composableBuilder(
+    column: $table.budgetLimit,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> transactionsRefs(
     Expression<bool> Function($$TransactionsTableFilterComposer f) f,
   ) {
@@ -1387,6 +1511,11 @@ class $$CategoriesTableOrderingComposer
     column: $table.isActive,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get budgetLimit => $composableBuilder(
+    column: $table.budgetLimit,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CategoriesTableAnnotationComposer
@@ -1412,6 +1541,11 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<double> get budgetLimit => $composableBuilder(
+    column: $table.budgetLimit,
+    builder: (column) => column,
+  );
 
   Expression<T> transactionsRefs<T extends Object>(
     Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
@@ -1472,12 +1606,14 @@ class $$CategoriesTableTableManager
                 Value<String?> icon = const Value.absent(),
                 Value<bool> isIncome = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<double?> budgetLimit = const Value.absent(),
               }) => CategoriesCompanion(
                 id: id,
                 name: name,
                 icon: icon,
                 isIncome: isIncome,
                 isActive: isActive,
+                budgetLimit: budgetLimit,
               ),
           createCompanionCallback:
               ({
@@ -1486,12 +1622,14 @@ class $$CategoriesTableTableManager
                 Value<String?> icon = const Value.absent(),
                 required bool isIncome,
                 Value<bool> isActive = const Value.absent(),
+                Value<double?> budgetLimit = const Value.absent(),
               }) => CategoriesCompanion.insert(
                 id: id,
                 name: name,
                 icon: icon,
                 isIncome: isIncome,
                 isActive: isActive,
+                budgetLimit: budgetLimit,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -1564,54 +1702,6 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<String> type,
     });
 
-final class $$AccountsTableReferences
-    extends BaseReferences<_$AppDatabase, $AccountsTable, Account> {
-  $$AccountsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<$TransactionsTable, List<Transaction>>
-  _outgoingTransactionsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.transactions,
-    aliasName: $_aliasNameGenerator(db.accounts.id, db.transactions.accountId),
-  );
-
-  $$TransactionsTableProcessedTableManager get outgoingTransactions {
-    final manager = $$TransactionsTableTableManager(
-      $_db,
-      $_db.transactions,
-    ).filter((f) => f.accountId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _outgoingTransactionsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$TransactionsTable, List<Transaction>>
-  _incomingTransactionsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.transactions,
-    aliasName: $_aliasNameGenerator(
-      db.accounts.id,
-      db.transactions.toAccountId,
-    ),
-  );
-
-  $$TransactionsTableProcessedTableManager get incomingTransactions {
-    final manager = $$TransactionsTableTableManager(
-      $_db,
-      $_db.transactions,
-    ).filter((f) => f.toAccountId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _incomingTransactionsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
 class $$AccountsTableFilterComposer
     extends Composer<_$AppDatabase, $AccountsTable> {
   $$AccountsTableFilterComposer({
@@ -1640,56 +1730,6 @@ class $$AccountsTableFilterComposer
     column: $table.type,
     builder: (column) => ColumnFilters(column),
   );
-
-  Expression<bool> outgoingTransactions(
-    Expression<bool> Function($$TransactionsTableFilterComposer f) f,
-  ) {
-    final $$TransactionsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.transactions,
-      getReferencedColumn: (t) => t.accountId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TransactionsTableFilterComposer(
-            $db: $db,
-            $table: $db.transactions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> incomingTransactions(
-    Expression<bool> Function($$TransactionsTableFilterComposer f) f,
-  ) {
-    final $$TransactionsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.transactions,
-      getReferencedColumn: (t) => t.toAccountId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TransactionsTableFilterComposer(
-            $db: $db,
-            $table: $db.transactions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$AccountsTableOrderingComposer
@@ -1744,56 +1784,6 @@ class $$AccountsTableAnnotationComposer
 
   GeneratedColumn<String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
-
-  Expression<T> outgoingTransactions<T extends Object>(
-    Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
-  ) {
-    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.transactions,
-      getReferencedColumn: (t) => t.accountId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TransactionsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.transactions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<T> incomingTransactions<T extends Object>(
-    Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
-  ) {
-    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.transactions,
-      getReferencedColumn: (t) => t.toAccountId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$TransactionsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.transactions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$AccountsTableTableManager
@@ -1807,12 +1797,9 @@ class $$AccountsTableTableManager
           $$AccountsTableAnnotationComposer,
           $$AccountsTableCreateCompanionBuilder,
           $$AccountsTableUpdateCompanionBuilder,
-          (Account, $$AccountsTableReferences),
+          (Account, BaseReferences<_$AppDatabase, $AccountsTable, Account>),
           Account,
-          PrefetchHooks Function({
-            bool outgoingTransactions,
-            bool incomingTransactions,
-          })
+          PrefetchHooks Function()
         > {
   $$AccountsTableTableManager(_$AppDatabase db, $AccountsTable table)
     : super(
@@ -1850,70 +1837,9 @@ class $$AccountsTableTableManager
                 type: type,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$AccountsTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback:
-              ({outgoingTransactions = false, incomingTransactions = false}) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (outgoingTransactions) db.transactions,
-                    if (incomingTransactions) db.transactions,
-                  ],
-                  addJoins: null,
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (outgoingTransactions)
-                        await $_getPrefetchedData<
-                          Account,
-                          $AccountsTable,
-                          Transaction
-                        >(
-                          currentTable: table,
-                          referencedTable: $$AccountsTableReferences
-                              ._outgoingTransactionsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$AccountsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).outgoingTransactions,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.accountId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (incomingTransactions)
-                        await $_getPrefetchedData<
-                          Account,
-                          $AccountsTable,
-                          Transaction
-                        >(
-                          currentTable: table,
-                          referencedTable: $$AccountsTableReferences
-                              ._incomingTransactionsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$AccountsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).incomingTransactions,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.toAccountId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
-              },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -1928,12 +1854,9 @@ typedef $$AccountsTableProcessedTableManager =
       $$AccountsTableAnnotationComposer,
       $$AccountsTableCreateCompanionBuilder,
       $$AccountsTableUpdateCompanionBuilder,
-      (Account, $$AccountsTableReferences),
+      (Account, BaseReferences<_$AppDatabase, $AccountsTable, Account>),
       Account,
-      PrefetchHooks Function({
-        bool outgoingTransactions,
-        bool incomingTransactions,
-      })
+      PrefetchHooks Function()
     >;
 typedef $$TransactionsTableCreateCompanionBuilder =
     TransactionsCompanion Function({
@@ -1941,11 +1864,12 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       required String description,
       required double amount,
       required DateTime date,
-      Value<int?> categoryId,
       required int accountId,
-      Value<int?> toAccountId,
+      Value<int?> categoryId,
+      Value<bool> isTransfer,
+      Value<int?> transferToAccountId,
       Value<bool> isRefund,
-      Value<int?> parentTransactionId,
+      Value<int?> refundedTransactionId,
     });
 typedef $$TransactionsTableUpdateCompanionBuilder =
     TransactionsCompanion Function({
@@ -1953,35 +1877,17 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<String> description,
       Value<double> amount,
       Value<DateTime> date,
-      Value<int?> categoryId,
       Value<int> accountId,
-      Value<int?> toAccountId,
+      Value<int?> categoryId,
+      Value<bool> isTransfer,
+      Value<int?> transferToAccountId,
       Value<bool> isRefund,
-      Value<int?> parentTransactionId,
+      Value<int?> refundedTransactionId,
     });
 
 final class $$TransactionsTableReferences
     extends BaseReferences<_$AppDatabase, $TransactionsTable, Transaction> {
   $$TransactionsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $CategoriesTable _categoryIdTable(_$AppDatabase db) =>
-      db.categories.createAlias(
-        $_aliasNameGenerator(db.transactions.categoryId, db.categories.id),
-      );
-
-  $$CategoriesTableProcessedTableManager? get categoryId {
-    final $_column = $_itemColumn<int>('category_id');
-    if ($_column == null) return null;
-    final manager = $$CategoriesTableTableManager(
-      $_db,
-      $_db.categories,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
 
   static $AccountsTable _accountIdTable(_$AppDatabase db) =>
       db.accounts.createAlias(
@@ -2002,19 +1908,65 @@ final class $$TransactionsTableReferences
     );
   }
 
-  static $AccountsTable _toAccountIdTable(_$AppDatabase db) =>
-      db.accounts.createAlias(
-        $_aliasNameGenerator(db.transactions.toAccountId, db.accounts.id),
+  static $CategoriesTable _categoryIdTable(_$AppDatabase db) =>
+      db.categories.createAlias(
+        $_aliasNameGenerator(db.transactions.categoryId, db.categories.id),
       );
 
-  $$AccountsTableProcessedTableManager? get toAccountId {
-    final $_column = $_itemColumn<int>('to_account_id');
+  $$CategoriesTableProcessedTableManager? get categoryId {
+    final $_column = $_itemColumn<int>('category_id');
+    if ($_column == null) return null;
+    final manager = $$CategoriesTableTableManager(
+      $_db,
+      $_db.categories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $AccountsTable _transferToAccountIdTable(_$AppDatabase db) =>
+      db.accounts.createAlias(
+        $_aliasNameGenerator(
+          db.transactions.transferToAccountId,
+          db.accounts.id,
+        ),
+      );
+
+  $$AccountsTableProcessedTableManager? get transferToAccountId {
+    final $_column = $_itemColumn<int>('transfer_to_account_id');
     if ($_column == null) return null;
     final manager = $$AccountsTableTableManager(
       $_db,
       $_db.accounts,
     ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_toAccountIdTable($_db));
+    final item = $_typedResult.readTableOrNull(_transferToAccountIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $TransactionsTable _refundedTransactionIdTable(_$AppDatabase db) =>
+      db.transactions.createAlias(
+        $_aliasNameGenerator(
+          db.transactions.refundedTransactionId,
+          db.transactions.id,
+        ),
+      );
+
+  $$TransactionsTableProcessedTableManager? get refundedTransactionId {
+    final $_column = $_itemColumn<int>('refunded_transaction_id');
+    if ($_column == null) return null;
+    final manager = $$TransactionsTableTableManager(
+      $_db,
+      $_db.transactions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(
+      _refundedTransactionIdTable($_db),
+    );
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -2051,38 +2003,15 @@ class $$TransactionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get isTransfer => $composableBuilder(
+    column: $table.isTransfer,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<bool> get isRefund => $composableBuilder(
     column: $table.isRefund,
     builder: (column) => ColumnFilters(column),
   );
-
-  ColumnFilters<int> get parentTransactionId => $composableBuilder(
-    column: $table.parentTransactionId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$CategoriesTableFilterComposer get categoryId {
-    final $$CategoriesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.categoryId,
-      referencedTable: $db.categories,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$CategoriesTableFilterComposer(
-            $db: $db,
-            $table: $db.categories,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 
   $$AccountsTableFilterComposer get accountId {
     final $$AccountsTableFilterComposer composer = $composerBuilder(
@@ -2107,10 +2036,33 @@ class $$TransactionsTableFilterComposer
     return composer;
   }
 
-  $$AccountsTableFilterComposer get toAccountId {
+  $$CategoriesTableFilterComposer get categoryId {
+    final $$CategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AccountsTableFilterComposer get transferToAccountId {
     final $$AccountsTableFilterComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.toAccountId,
+      getCurrentColumn: (t) => t.transferToAccountId,
       referencedTable: $db.accounts,
       getReferencedColumn: (t) => t.id,
       builder:
@@ -2121,6 +2073,29 @@ class $$TransactionsTableFilterComposer
           }) => $$AccountsTableFilterComposer(
             $db: $db,
             $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableFilterComposer get refundedTransactionId {
+    final $$TransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.refundedTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.transactions,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2160,38 +2135,15 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isTransfer => $composableBuilder(
+    column: $table.isTransfer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isRefund => $composableBuilder(
     column: $table.isRefund,
     builder: (column) => ColumnOrderings(column),
   );
-
-  ColumnOrderings<int> get parentTransactionId => $composableBuilder(
-    column: $table.parentTransactionId,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$CategoriesTableOrderingComposer get categoryId {
-    final $$CategoriesTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.categoryId,
-      referencedTable: $db.categories,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$CategoriesTableOrderingComposer(
-            $db: $db,
-            $table: $db.categories,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
 
   $$AccountsTableOrderingComposer get accountId {
     final $$AccountsTableOrderingComposer composer = $composerBuilder(
@@ -2216,10 +2168,33 @@ class $$TransactionsTableOrderingComposer
     return composer;
   }
 
-  $$AccountsTableOrderingComposer get toAccountId {
+  $$CategoriesTableOrderingComposer get categoryId {
+    final $$CategoriesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AccountsTableOrderingComposer get transferToAccountId {
     final $$AccountsTableOrderingComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.toAccountId,
+      getCurrentColumn: (t) => t.transferToAccountId,
       referencedTable: $db.accounts,
       getReferencedColumn: (t) => t.id,
       builder:
@@ -2230,6 +2205,29 @@ class $$TransactionsTableOrderingComposer
           }) => $$AccountsTableOrderingComposer(
             $db: $db,
             $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableOrderingComposer get refundedTransactionId {
+    final $$TransactionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.refundedTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.transactions,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2263,36 +2261,13 @@ class $$TransactionsTableAnnotationComposer
   GeneratedColumn<DateTime> get date =>
       $composableBuilder(column: $table.date, builder: (column) => column);
 
-  GeneratedColumn<bool> get isRefund =>
-      $composableBuilder(column: $table.isRefund, builder: (column) => column);
-
-  GeneratedColumn<int> get parentTransactionId => $composableBuilder(
-    column: $table.parentTransactionId,
+  GeneratedColumn<bool> get isTransfer => $composableBuilder(
+    column: $table.isTransfer,
     builder: (column) => column,
   );
 
-  $$CategoriesTableAnnotationComposer get categoryId {
-    final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.categoryId,
-      referencedTable: $db.categories,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$CategoriesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.categories,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
+  GeneratedColumn<bool> get isRefund =>
+      $composableBuilder(column: $table.isRefund, builder: (column) => column);
 
   $$AccountsTableAnnotationComposer get accountId {
     final $$AccountsTableAnnotationComposer composer = $composerBuilder(
@@ -2317,10 +2292,33 @@ class $$TransactionsTableAnnotationComposer
     return composer;
   }
 
-  $$AccountsTableAnnotationComposer get toAccountId {
+  $$CategoriesTableAnnotationComposer get categoryId {
+    final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.categories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CategoriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.categories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AccountsTableAnnotationComposer get transferToAccountId {
     final $$AccountsTableAnnotationComposer composer = $composerBuilder(
       composer: this,
-      getCurrentColumn: (t) => t.toAccountId,
+      getCurrentColumn: (t) => t.transferToAccountId,
       referencedTable: $db.accounts,
       getReferencedColumn: (t) => t.id,
       builder:
@@ -2331,6 +2329,29 @@ class $$TransactionsTableAnnotationComposer
           }) => $$AccountsTableAnnotationComposer(
             $db: $db,
             $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TransactionsTableAnnotationComposer get refundedTransactionId {
+    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.refundedTransactionId,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.transactions,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2355,9 +2376,10 @@ class $$TransactionsTableTableManager
           (Transaction, $$TransactionsTableReferences),
           Transaction,
           PrefetchHooks Function({
-            bool categoryId,
             bool accountId,
-            bool toAccountId,
+            bool categoryId,
+            bool transferToAccountId,
+            bool refundedTransactionId,
           })
         > {
   $$TransactionsTableTableManager(_$AppDatabase db, $TransactionsTable table)
@@ -2377,21 +2399,23 @@ class $$TransactionsTableTableManager
                 Value<String> description = const Value.absent(),
                 Value<double> amount = const Value.absent(),
                 Value<DateTime> date = const Value.absent(),
-                Value<int?> categoryId = const Value.absent(),
                 Value<int> accountId = const Value.absent(),
-                Value<int?> toAccountId = const Value.absent(),
+                Value<int?> categoryId = const Value.absent(),
+                Value<bool> isTransfer = const Value.absent(),
+                Value<int?> transferToAccountId = const Value.absent(),
                 Value<bool> isRefund = const Value.absent(),
-                Value<int?> parentTransactionId = const Value.absent(),
+                Value<int?> refundedTransactionId = const Value.absent(),
               }) => TransactionsCompanion(
                 id: id,
                 description: description,
                 amount: amount,
                 date: date,
-                categoryId: categoryId,
                 accountId: accountId,
-                toAccountId: toAccountId,
+                categoryId: categoryId,
+                isTransfer: isTransfer,
+                transferToAccountId: transferToAccountId,
                 isRefund: isRefund,
-                parentTransactionId: parentTransactionId,
+                refundedTransactionId: refundedTransactionId,
               ),
           createCompanionCallback:
               ({
@@ -2399,21 +2423,23 @@ class $$TransactionsTableTableManager
                 required String description,
                 required double amount,
                 required DateTime date,
-                Value<int?> categoryId = const Value.absent(),
                 required int accountId,
-                Value<int?> toAccountId = const Value.absent(),
+                Value<int?> categoryId = const Value.absent(),
+                Value<bool> isTransfer = const Value.absent(),
+                Value<int?> transferToAccountId = const Value.absent(),
                 Value<bool> isRefund = const Value.absent(),
-                Value<int?> parentTransactionId = const Value.absent(),
+                Value<int?> refundedTransactionId = const Value.absent(),
               }) => TransactionsCompanion.insert(
                 id: id,
                 description: description,
                 amount: amount,
                 date: date,
-                categoryId: categoryId,
                 accountId: accountId,
-                toAccountId: toAccountId,
+                categoryId: categoryId,
+                isTransfer: isTransfer,
+                transferToAccountId: transferToAccountId,
                 isRefund: isRefund,
-                parentTransactionId: parentTransactionId,
+                refundedTransactionId: refundedTransactionId,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2424,7 +2450,12 @@ class $$TransactionsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({categoryId = false, accountId = false, toAccountId = false}) {
+              ({
+                accountId = false,
+                categoryId = false,
+                transferToAccountId = false,
+                refundedTransactionId = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [],
@@ -2444,21 +2475,6 @@ class $$TransactionsTableTableManager
                           dynamic
                         >
                       >(state) {
-                        if (categoryId) {
-                          state =
-                              state.withJoin(
-                                    currentTable: table,
-                                    currentColumn: table.categoryId,
-                                    referencedTable:
-                                        $$TransactionsTableReferences
-                                            ._categoryIdTable(db),
-                                    referencedColumn:
-                                        $$TransactionsTableReferences
-                                            ._categoryIdTable(db)
-                                            .id,
-                                  )
-                                  as T;
-                        }
                         if (accountId) {
                           state =
                               state.withJoin(
@@ -2474,17 +2490,47 @@ class $$TransactionsTableTableManager
                                   )
                                   as T;
                         }
-                        if (toAccountId) {
+                        if (categoryId) {
                           state =
                               state.withJoin(
                                     currentTable: table,
-                                    currentColumn: table.toAccountId,
+                                    currentColumn: table.categoryId,
                                     referencedTable:
                                         $$TransactionsTableReferences
-                                            ._toAccountIdTable(db),
+                                            ._categoryIdTable(db),
                                     referencedColumn:
                                         $$TransactionsTableReferences
-                                            ._toAccountIdTable(db)
+                                            ._categoryIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (transferToAccountId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.transferToAccountId,
+                                    referencedTable:
+                                        $$TransactionsTableReferences
+                                            ._transferToAccountIdTable(db),
+                                    referencedColumn:
+                                        $$TransactionsTableReferences
+                                            ._transferToAccountIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (refundedTransactionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.refundedTransactionId,
+                                    referencedTable:
+                                        $$TransactionsTableReferences
+                                            ._refundedTransactionIdTable(db),
+                                    referencedColumn:
+                                        $$TransactionsTableReferences
+                                            ._refundedTransactionIdTable(db)
                                             .id,
                                   )
                                   as T;
@@ -2514,9 +2560,10 @@ typedef $$TransactionsTableProcessedTableManager =
       (Transaction, $$TransactionsTableReferences),
       Transaction,
       PrefetchHooks Function({
-        bool categoryId,
         bool accountId,
-        bool toAccountId,
+        bool categoryId,
+        bool transferToAccountId,
+        bool refundedTransactionId,
       })
     >;
 
