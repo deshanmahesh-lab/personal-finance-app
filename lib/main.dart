@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:workmanager/workmanager.dart';
 import 'utils/notification_service.dart';
 import 'data/datasources/app_database.dart';
-import 'data/repositories/account_repository.dart';
 import 'presentation/screens/main_screen.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/screens/lock_screen.dart';
@@ -17,10 +16,12 @@ void callbackDispatcher() {
 
       if (now.day == lastDayOfMonth && now.hour >= 18) {
         await NotificationService().init();
-        final db = AppDatabase();
-        final repo = AccountRepository(db);
 
-        final cashFlowStream = repo.watchMonthlyCashFlow(now);
+        final db = AppDatabase();
+        // [නව වෙනස] පැරණි Repository එක වෙනුවට අලුත් TransactionDao භාවිත කිරීම
+        final txDao = db.transactionDao;
+
+        final cashFlowStream = txDao.watchMonthlyCashFlow(now);
         final data = await cashFlowStream.first;
 
         final income = data['income'] ?? 0.0;
@@ -32,6 +33,9 @@ void callbackDispatcher() {
         final body = 'Income: Rs. ${income.toStringAsFixed(0)} | Expense: Rs. ${expense.toStringAsFixed(0)}\nNet Balance: Rs. ${balance.toStringAsFixed(0)}';
 
         await NotificationService().showMonthlySummary(title, body);
+
+        // [නව වෙනස] Background task එක අවසානයේ Database එක Close කිරීම
+        await db.close();
       }
     } catch (e) {
       debugPrint("Background Task Error: $e");
@@ -45,11 +49,9 @@ String _getMonthName(int month) {
   return months[month - 1];
 }
 
-// [වෙනස] async ඉවත් කර ඇත.
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // [වෙනස] UI එක Block නොකර Background එකෙන් Services Init වෙන්න වෙනම Function එකකට යොමු කර ඇත
   _initServicesBackground();
 
   runApp(
@@ -59,7 +61,6 @@ void main() {
   );
 }
 
-// [අලුත්] Heavy Operations සියල්ල මෙහි වෙනම Run වේ
 Future<void> _initServicesBackground() async {
   await NotificationService().init();
   Workmanager().initialize(

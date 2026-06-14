@@ -8,13 +8,19 @@ import '../models/category_table.dart';
 import '../models/account_table.dart';
 import '../models/transaction_table.dart';
 
+import 'daos/account_dao.dart';
+import 'daos/category_dao.dart';
+import 'daos/transaction_dao.dart';
+
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Categories, Accounts, Transactions])
+@DriftDatabase(
+  tables: [Categories, Accounts, Transactions],
+  daos: [AccountDao, CategoryDao, TransactionDao],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
-  // [වෙනස] Schema Version එක 2 බවට පත් කර ඇත
   @override
   int get schemaVersion => 2;
 
@@ -27,7 +33,6 @@ class AppDatabase extends _$AppDatabase {
       },
       onUpgrade: (Migrator m, int from, int to) async {
         if (from == 1) {
-          // පරණ Database එකක් ඇත්නම් අලුත් තීරු එයට එකතු කිරීම
           await m.addColumn(transactions, transactions.isTransfer);
           await m.addColumn(transactions, transactions.transferToAccountId);
           await m.addColumn(transactions, transactions.isRefund);

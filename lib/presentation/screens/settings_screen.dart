@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/theme_provider.dart';
-import '../providers/account_repository_provider.dart';
-import '../providers/app_lock_provider.dart'; // [නව වෙනස]
+import '../providers/database_provider.dart';
+import '../providers/app_lock_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -32,7 +32,7 @@ class SettingsScreen extends ConsumerWidget {
 
     if (confirmed == true) {
       try {
-        await ref.read(accountRepositoryProvider).resetAllData();
+        await ref.read(transactionDaoProvider).resetAllData();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Row(children: [Icon(Icons.check_circle_outline, color: Colors.white), SizedBox(width: 12), Expanded(child: Text('All data has been successfully reset.', style: TextStyle(fontWeight: FontWeight.bold)))]), backgroundColor: Colors.green.shade600, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))));
         }
@@ -45,7 +45,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentTheme = ref.watch(themeProvider);
-    final isAppLockEnabled = ref.watch(appLockProvider); // [නව වෙනස]
+    final isAppLockEnabled = ref.watch(appLockProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
@@ -59,7 +59,6 @@ class SettingsScreen extends ConsumerWidget {
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           children: [
-            // --- SECTION 1: APPEARANCE ---
             const Text('Appearance (පෙනුම)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 12),
             Container(
@@ -80,8 +79,6 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 32),
-
-            // --- SECTION 2: SECURITY & DATA ---
             const Text('Security & Data (ආරක්ෂාව සහ දත්ත)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
             const SizedBox(height: 12),
             Container(
@@ -92,7 +89,6 @@ class SettingsScreen extends ConsumerWidget {
                 clipBehavior: Clip.antiAlias,
                 child: Column(
                   children: [
-                    // [නව වෙනස] App Lock Toggle Button
                     SwitchListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                       secondary: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), shape: BoxShape.circle), child: Icon(Icons.fingerprint_rounded, color: Colors.blue.shade600)),
@@ -105,8 +101,6 @@ class SettingsScreen extends ConsumerWidget {
                       },
                     ),
                     Divider(height: 1, indent: 64, endIndent: 20, color: Colors.grey.withOpacity(0.1)),
-
-                    // Factory Reset Button
                     InkWell(
                       onTap: () => _showResetConfirmationDialog(context, ref),
                       child: Padding(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../providers/account_repository_provider.dart';
+import '../providers/database_provider.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
@@ -12,7 +12,7 @@ class AnalyticsScreen extends ConsumerStatefulWidget {
 
 class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   bool _isIncome = false;
-  bool _isYearlyView = false; // Monthly ද Yearly ද යන්න තීරණය කරයි
+  bool _isYearlyView = false;
 
   late DateTime _currentMonth;
   late int _currentYear;
@@ -54,26 +54,17 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // --- 1. Header & Dynamic Date Selector ---
             _buildPremiumHeader(primaryColor),
-
             const SizedBox(height: 20),
-
-            // --- 2. Premium Sliding Toggles (Glassmorphism Effect) ---
             _buildSlidingToggles(primaryColor),
-
             const SizedBox(height: 24),
-
-            // --- 3. Chart & Analytics Area (Card එකක් ඇතුළත) ---
             Expanded(
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))
-                  ],
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -87,31 +78,21 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
     );
   }
 
-  // --- Premium Header with Pinned Date Selector ---
   Widget _buildPremiumHeader(Color primaryColor) {
-    String dateText = _isYearlyView
-        ? 'Year $_currentYear'
-        : '${_monthNames[_currentMonth.month - 1]} ${_currentMonth.year}';
-
+    String dateText = _isYearlyView ? 'Year $_currentYear' : '${_monthNames[_currentMonth.month - 1]} ${_currentMonth.year}';
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            _isIncome ? 'Income Analytics' : 'Expense Analytics',
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey),
-          ),
+          Text(_isIncome ? 'Income Analytics' : 'Expense Analytics', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey)),
           const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(dateText, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
               Container(
-                decoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(15),
-                ),
+                decoration: BoxDecoration(color: primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
                 child: Row(
                   children: [
                     IconButton(icon: Icon(Icons.chevron_left_rounded, color: primaryColor), onPressed: _prevPeriod),
@@ -126,38 +107,17 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
     );
   }
 
-  // --- Modern sliding Toggles ---
   Widget _buildSlidingToggles(Color primaryColor) {
     return Column(
       children: [
-        _buildSingleToggle(
-          title: 'Period:',
-          option1: 'Monthly',
-          option2: 'Yearly',
-          isOption2Selected: _isYearlyView,
-          onChanged: (val) => setState(() => _isYearlyView = val),
-        ),
+        _buildSingleToggle(title: 'Period:', option1: 'Monthly', option2: 'Yearly', isOption2Selected: _isYearlyView, onChanged: (val) => setState(() => _isYearlyView = val)),
         const SizedBox(height: 12),
-        _buildSingleToggle(
-          title: 'Type:',
-          option1: 'Expenses',
-          option2: 'Income',
-          isOption2Selected: _isIncome,
-          activeColor: primaryColor,
-          onChanged: (val) => setState(() => _isIncome = val),
-        ),
+        _buildSingleToggle(title: 'Type:', option1: 'Expenses', option2: 'Income', isOption2Selected: _isIncome, activeColor: primaryColor, onChanged: (val) => setState(() => _isIncome = val)),
       ],
     );
   }
 
-  Widget _buildSingleToggle({
-    required String title,
-    required String option1,
-    required String option2,
-    required bool isOption2Selected,
-    required Function(bool) onChanged,
-    Color? activeColor,
-  }) {
+  Widget _buildSingleToggle({required String title, required String option1, required String option2, required bool isOption2Selected, required Function(bool) onChanged, Color? activeColor}) {
     final themeColor = activeColor ?? Theme.of(context).colorScheme.primary;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -170,11 +130,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
               decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(20)),
               child: Stack(
                 children: [
-                  AnimatedAlign(
-                    duration: const Duration(milliseconds: 200),
-                    alignment: isOption2Selected ? Alignment.centerRight : Alignment.centerLeft,
-                    child: FractionallySizedBox(widthFactor: 0.5, child: Container(decoration: BoxDecoration(color: themeColor, borderRadius: BorderRadius.circular(20)))),
-                  ),
+                  AnimatedAlign(duration: const Duration(milliseconds: 200), alignment: isOption2Selected ? Alignment.centerRight : Alignment.centerLeft, child: FractionallySizedBox(widthFactor: 0.5, child: Container(decoration: BoxDecoration(color: themeColor, borderRadius: BorderRadius.circular(20))))),
                   Row(
                     children: [
                       Expanded(child: GestureDetector(onTap: () => onChanged(false), behavior: HitTestBehavior.opaque, child: Center(child: Text(option1, style: TextStyle(fontWeight: FontWeight.bold, color: !isOption2Selected ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant))))),
@@ -190,11 +146,10 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
     );
   }
 
-  // --- මාසික Pie Chart එක සෑදීමේ කේතය (Total මැදට සහ Percentage පේළියට) ---
   Widget _buildMonthlyPieChart() {
     final endMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
     return StreamBuilder<Map<String, double>>(
-      stream: ref.watch(accountRepositoryProvider).watchCategorySummary(_isIncome, _currentMonth, endMonth),
+      stream: ref.watch(transactionDaoProvider).watchCategorySummary(_isIncome, _currentMonth, endMonth),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         final data = snapshot.data ?? {};
@@ -210,27 +165,18 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
           final color = colors[colorIndex % colors.length];
           double percent = (totalAmount > 0) ? (amount / totalAmount) * 100 : 0;
           sections.add(PieChartSectionData(color: color, value: amount, title: '', radius: 50));
-          // [වෙනස 1] Legend tile එක නිවැරදි කර ඇත
           legend.add(_buildLegendTile(color, categoryName, amount, percent));
           colorIndex++;
         });
 
         return Column(
           children: [
-            // [වෙනස 2] Total Text එක මැදට Pin කිරීමට Stack එකක් භාවිතා කර ඇත
             SizedBox(
-              height: 200, // height එක තරමක් වැඩි කර ඇත
+              height: 200,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  PieChart(
-                    PieChartData(
-                      sections: sections,
-                      centerSpaceRadius: 65, // මැද ඉඩ වැඩි කර ඇත
-                      sectionsSpace: 3,
-                      startDegreeOffset: -90,
-                    ),
-                  ),
+                  PieChart(PieChartData(sections: sections, centerSpaceRadius: 65, sectionsSpace: 3, startDegreeOffset: -90)),
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -250,7 +196,6 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
     );
   }
 
-  // [වෙනස 3] Legend tile එකේ UI/UX වැඩි දියුණු කිරීම (Percentage Same Line)
   Widget _buildLegendTile(Color color, String name, double amount, double percent) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
@@ -259,7 +204,6 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
         children: [
           Container(width: 14, height: 14, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
           const SizedBox(width: 12),
-          // Category Name සහ Percentage එකම පේළියේ
           Expanded(
             child: Row(
               children: [
@@ -269,17 +213,15 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
               ],
             ),
           ),
-          // Amount එක Bold එකට
           Text('Rs. ${amount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  // --- Yearly Bar Chart ---
   Widget _buildYearlyBarChart(Color primaryColor) {
     return StreamBuilder<Map<int, double>>(
-      stream: ref.watch(accountRepositoryProvider).watchMonthlySummary(_currentYear, _isIncome),
+      stream: ref.watch(transactionDaoProvider).watchMonthlySummary(_currentYear, _isIncome),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         final data = snapshot.data ?? {for (var i = 1; i <= 12; i++) i: 0.0};
@@ -287,9 +229,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
         if (!hasData) return _buildEmptyState('No data available for $_currentYear.');
 
         List<BarChartGroupData> barGroups = [];
-        final List<Gradient> barGradients = [
-          LinearGradient(colors: [primaryColor, primaryColor.withOpacity(0.6)], begin: Alignment.bottomCenter, end: Alignment.topCenter)
-        ];
+        final List<Gradient> barGradients = [LinearGradient(colors: [primaryColor, primaryColor.withOpacity(0.6)], begin: Alignment.bottomCenter, end: Alignment.topCenter)];
 
         for (int month = 1; month <= 12; month++) {
           final amount = data[month] ?? 0.0;
@@ -314,12 +254,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                     getTitlesWidget: (value, meta) {
                       const monthInitials = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
                       final index = value.toInt() - 1;
-                      if (index >= 0 && index < 12) {
-                        return Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
-                            child: Text(monthInitials[index], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))
-                        );
-                      }
+                      if (index >= 0 && index < 12) return Padding(padding: const EdgeInsets.only(top: 8.0), child: Text(monthInitials[index], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)));
                       return const Text('');
                     },
                   ),
@@ -343,15 +278,6 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   }
 
   Widget _buildEmptyState(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.query_stats_rounded, size: 64, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          Text(message, style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
-        ],
-      ),
-    );
+    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.query_stats_rounded, size: 64, color: Colors.grey.shade400), const SizedBox(height: 16), Text(message, style: TextStyle(color: Colors.grey.shade600, fontSize: 16))]));
   }
 }

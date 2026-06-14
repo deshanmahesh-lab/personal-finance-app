@@ -8,17 +8,18 @@ class Transactions extends Table {
   RealColumn get amount => real()();
   DateTimeColumn get date => dateTime()();
 
-  // මූලික ගිණුම සහ කාණ්ඩය
+  // [Fix] ReferenceName එකතු කර ඇත
+  @ReferenceName('mainAccount')
   IntColumn get accountId => integer().references(Accounts, #id)();
-  IntColumn get categoryId => integer().nullable().references(Categories, #id)(); // Transfers සඳහා කාණ්ඩයක් නැති නිසා මෙය null විය හැක
 
-  // --- Advanced Edge Cases සඳහා අලුත් තීරු ---
+  IntColumn get categoryId => integer().nullable().references(Categories, #id)();
 
-  // 1. Transfers (ATM Withdrawals ආදිය) සඳහා
   BoolColumn get isTransfer => boolean().withDefault(const Constant(false))();
+
+  // [Fix] ReferenceName එකතු කර ඇත
+  @ReferenceName('transferAccount')
   IntColumn get transferToAccountId => integer().nullable().references(Accounts, #id)();
 
-  // 2. Refunds (මුදල් ආපසු ලැබීම්) සඳහා
   BoolColumn get isRefund => boolean().withDefault(const Constant(false))();
-  IntColumn get refundedTransactionId => integer().nullable().references(Transactions, #id)(); // මුල් ගනුදෙනුවට සම්බන්ධ කිරීම
+  IntColumn get refundedTransactionId => integer().nullable().references(Transactions, #id)();
 }

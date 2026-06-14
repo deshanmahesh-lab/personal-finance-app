@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../data/datasources/app_database.dart';
-import '../providers/account_repository_provider.dart';
+import '../providers/database_provider.dart';
 
 class ManageCategoriesScreen extends ConsumerStatefulWidget {
   const ManageCategoriesScreen({super.key});
@@ -27,14 +27,12 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
             const SizedBox(height: 24),
             _buildSlidingToggles(primaryColor),
             const SizedBox(height: 16),
-            Expanded(
-              child: _CategoryList(isIncome: _isIncome),
-            ),
+            Expanded(child: _CategoryList(isIncome: _isIncome)),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        heroTag: null, // [FIX] "Multiple heroes" දෝෂය වළක්වයි
+        heroTag: null,
         elevation: 2,
         backgroundColor: primaryColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -50,27 +48,14 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Container(
         height: 48,
-        decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.6),
-            borderRadius: BorderRadius.circular(12)
-        ),
+        decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.6), borderRadius: BorderRadius.circular(12)),
         child: Stack(
           children: [
             AnimatedAlign(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeOutCubic,
               alignment: _isIncome ? Alignment.centerRight : Alignment.centerLeft,
-              child: FractionallySizedBox(
-                  widthFactor: 0.5,
-                  child: Container(
-                      margin: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
-                      )
-                  )
-              ),
+              child: FractionallySizedBox(widthFactor: 0.5, child: Container(margin: const EdgeInsets.all(4), decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(8), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]))),
             ),
             Row(
               children: [
@@ -105,12 +90,7 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
                 const SizedBox(height: 24),
                 TextField(
                   controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Category Name',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: dialogColor, width: 2)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
+                  decoration: InputDecoration(labelText: 'Category Name', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: dialogColor, width: 2)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
                   autofocus: true,
                   textCapitalization: TextCapitalization.words,
                 ),
@@ -119,31 +99,21 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
                   TextField(
                     controller: budgetController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: InputDecoration(
-                      labelText: 'Monthly Budget (Optional)',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: dialogColor, width: 2)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    ),
+                    decoration: InputDecoration(labelText: 'Monthly Budget (Optional)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: dialogColor, width: 2)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
                   ),
                 ],
                 const SizedBox(height: 32),
                 SizedBox(
-                  width: double.infinity,
-                  height: 50,
+                  width: double.infinity, height: 50,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: dialogColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: dialogColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
                     onPressed: () {
                       final name = nameController.text.trim();
                       if (name.isNotEmpty) {
                         final budgetText = budgetController.text.trim();
                         final budgetValue = double.tryParse(budgetText);
                         final newCategory = CategoriesCompanion.insert(name: name, isIncome: isIncome, budgetLimit: drift.Value(budgetValue));
-                        ref.read(accountRepositoryProvider).insertCategory(newCategory);
+                        ref.read(categoryDaoProvider).insertCategory(newCategory);
                         Navigator.pop(context);
                       }
                     },
@@ -165,7 +135,7 @@ class _CategoryList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stream = ref.watch(accountRepositoryProvider).watchCategories(isIncome);
+    final stream = ref.watch(categoryDaoProvider).watchCategories(isIncome);
     final themeColor = isIncome ? Colors.green.shade600 : Colors.red.shade600;
 
     return StreamBuilder<List<Category>>(
@@ -181,12 +151,7 @@ class _CategoryList extends ConsumerWidget {
 
         return Container(
           margin: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.grey.withOpacity(0.1)),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))],
-          ),
+          decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.withOpacity(0.1)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))]),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(24),
             child: ListView.separated(
@@ -201,16 +166,11 @@ class _CategoryList extends ConsumerWidget {
                 return Dismissible(
                   key: ValueKey(cat.id),
                   direction: DismissDirection.endToStart,
-                  background: Container(
-                    color: Colors.red.shade600,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
-                  ),
+                  background: Container(color: Colors.red.shade600, alignment: Alignment.centerRight, padding: const EdgeInsets.symmetric(horizontal: 24), child: const Icon(Icons.delete_outline, color: Colors.white, size: 28)),
                   confirmDismiss: (direction) => _confirmDeleteCategory(context, ref, cat),
                   onDismissed: (direction) {
                     final deletedCategory = cat.copyWith(isActive: false);
-                    ref.read(accountRepositoryProvider).updateCategory(deletedCategory);
+                    ref.read(categoryDaoProvider).updateCategory(deletedCategory);
                   },
                   child: Material(
                     color: Colors.transparent,
@@ -220,21 +180,14 @@ class _CategoryList extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         child: Row(
                           children: [
-                            Container(
-                              width: 44, height: 44,
-                              decoration: BoxDecoration(color: themeColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                              child: Icon(Icons.sell_outlined, color: themeColor, size: 22),
-                            ),
+                            Container(width: 44, height: 44, decoration: BoxDecoration(color: themeColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.sell_outlined, color: themeColor, size: 22)),
                             const SizedBox(width: 16),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(cat.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                                  if (hasBudget) ...[
-                                    const SizedBox(height: 4),
-                                    Text('Budget: Rs. ${cat.budgetLimit!.toStringAsFixed(0)}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-                                  ]
+                                  if (hasBudget) ...[const SizedBox(height: 4), Text('Budget: Rs. ${cat.budgetLimit!.toStringAsFixed(0)}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13))]
                                 ],
                               ),
                             ),
@@ -273,12 +226,7 @@ class _CategoryList extends ConsumerWidget {
                 const SizedBox(height: 24),
                 TextField(
                   controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Category Name',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: themeColor, width: 2)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
+                  decoration: InputDecoration(labelText: 'Category Name', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: themeColor, width: 2)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
                   autofocus: true,
                   textCapitalization: TextCapitalization.words,
                 ),
@@ -287,31 +235,21 @@ class _CategoryList extends ConsumerWidget {
                   TextField(
                     controller: budgetController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: InputDecoration(
-                      labelText: 'Monthly Budget Limit',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: themeColor, width: 2)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    ),
+                    decoration: InputDecoration(labelText: 'Monthly Budget Limit', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: themeColor, width: 2)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
                   ),
                 ],
                 const SizedBox(height: 32),
                 SizedBox(
-                  width: double.infinity,
-                  height: 50,
+                  width: double.infinity, height: 50,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: themeColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: themeColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
                     onPressed: () {
                       final newName = nameController.text.trim();
                       if (newName.isNotEmpty) {
                         final budgetText = budgetController.text.trim();
                         final newBudget = budgetText.isEmpty ? null : double.tryParse(budgetText);
                         final updatedCategory = category.copyWith(name: newName, budgetLimit: drift.Value(newBudget));
-                        ref.read(accountRepositoryProvider).updateCategory(updatedCategory);
+                        ref.read(categoryDaoProvider).updateCategory(updatedCategory);
                         Navigator.pop(context);
                       }
                     },
@@ -341,7 +279,7 @@ class _CategoryList extends ConsumerWidget {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
               onPressed: () {
                 final deletedCategory = category.copyWith(isActive: false);
-                ref.read(accountRepositoryProvider).updateCategory(deletedCategory);
+                ref.read(categoryDaoProvider).updateCategory(deletedCategory);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${category.name} deleted.'), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
               },

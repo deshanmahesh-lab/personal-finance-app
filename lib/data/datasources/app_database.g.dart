@@ -1357,6 +1357,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $AccountsTable accounts = $AccountsTable(this);
   late final $TransactionsTable transactions = $TransactionsTable(this);
+  late final AccountDao accountDao = AccountDao(this as AppDatabase);
+  late final CategoryDao categoryDao = CategoryDao(this as AppDatabase);
+  late final TransactionDao transactionDao = TransactionDao(
+    this as AppDatabase,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1702,6 +1707,50 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<String> type,
     });
 
+final class $$AccountsTableReferences
+    extends BaseReferences<_$AppDatabase, $AccountsTable, Account> {
+  $$AccountsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$TransactionsTable, List<Transaction>>
+  _mainAccountTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.transactions,
+    aliasName: $_aliasNameGenerator(db.accounts.id, db.transactions.accountId),
+  );
+
+  $$TransactionsTableProcessedTableManager get mainAccount {
+    final manager = $$TransactionsTableTableManager(
+      $_db,
+      $_db.transactions,
+    ).filter((f) => f.accountId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_mainAccountTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$TransactionsTable, List<Transaction>>
+  _transferAccountTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.transactions,
+    aliasName: $_aliasNameGenerator(
+      db.accounts.id,
+      db.transactions.transferToAccountId,
+    ),
+  );
+
+  $$TransactionsTableProcessedTableManager get transferAccount {
+    final manager = $$TransactionsTableTableManager($_db, $_db.transactions)
+        .filter(
+          (f) => f.transferToAccountId.id.sqlEquals($_itemColumn<int>('id')!),
+        );
+
+    final cache = $_typedResult.readTableOrNull(_transferAccountTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$AccountsTableFilterComposer
     extends Composer<_$AppDatabase, $AccountsTable> {
   $$AccountsTableFilterComposer({
@@ -1730,6 +1779,56 @@ class $$AccountsTableFilterComposer
     column: $table.type,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> mainAccount(
+    Expression<bool> Function($$TransactionsTableFilterComposer f) f,
+  ) {
+    final $$TransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.accountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> transferAccount(
+    Expression<bool> Function($$TransactionsTableFilterComposer f) f,
+  ) {
+    final $$TransactionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.transferToAccountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableFilterComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AccountsTableOrderingComposer
@@ -1784,6 +1883,56 @@ class $$AccountsTableAnnotationComposer
 
   GeneratedColumn<String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
+
+  Expression<T> mainAccount<T extends Object>(
+    Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
+  ) {
+    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.accountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> transferAccount<T extends Object>(
+    Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
+  ) {
+    final $$TransactionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.transactions,
+      getReferencedColumn: (t) => t.transferToAccountId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TransactionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.transactions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AccountsTableTableManager
@@ -1797,9 +1946,9 @@ class $$AccountsTableTableManager
           $$AccountsTableAnnotationComposer,
           $$AccountsTableCreateCompanionBuilder,
           $$AccountsTableUpdateCompanionBuilder,
-          (Account, BaseReferences<_$AppDatabase, $AccountsTable, Account>),
+          (Account, $$AccountsTableReferences),
           Account,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool mainAccount, bool transferAccount})
         > {
   $$AccountsTableTableManager(_$AppDatabase db, $AccountsTable table)
     : super(
@@ -1837,9 +1986,70 @@ class $$AccountsTableTableManager
                 type: type,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$AccountsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback:
+              ({mainAccount = false, transferAccount = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (mainAccount) db.transactions,
+                    if (transferAccount) db.transactions,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (mainAccount)
+                        await $_getPrefetchedData<
+                          Account,
+                          $AccountsTable,
+                          Transaction
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AccountsTableReferences
+                              ._mainAccountTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AccountsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).mainAccount,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.accountId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (transferAccount)
+                        await $_getPrefetchedData<
+                          Account,
+                          $AccountsTable,
+                          Transaction
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AccountsTableReferences
+                              ._transferAccountTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AccountsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).transferAccount,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.transferToAccountId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
         ),
       );
 }
@@ -1854,9 +2064,9 @@ typedef $$AccountsTableProcessedTableManager =
       $$AccountsTableAnnotationComposer,
       $$AccountsTableCreateCompanionBuilder,
       $$AccountsTableUpdateCompanionBuilder,
-      (Account, BaseReferences<_$AppDatabase, $AccountsTable, Account>),
+      (Account, $$AccountsTableReferences),
       Account,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool mainAccount, bool transferAccount})
     >;
 typedef $$TransactionsTableCreateCompanionBuilder =
     TransactionsCompanion Function({

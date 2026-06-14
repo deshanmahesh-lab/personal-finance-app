@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../data/datasources/app_database.dart';
-import '../providers/account_repository_provider.dart';
+import '../providers/database_provider.dart';
 
 class ManageAccountsScreen extends ConsumerStatefulWidget {
   const ManageAccountsScreen({super.key});
@@ -53,7 +53,6 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                     children: [
                       Text(isEditMode ? 'Edit Wallet' : 'New Wallet', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 24),
-
                       TextField(
                         controller: nameController,
                         decoration: InputDecoration(
@@ -66,7 +65,6 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                         textCapitalization: TextCapitalization.words,
                       ),
                       const SizedBox(height: 16),
-
                       TextField(
                         controller: balanceController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -79,15 +77,11 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-
                       const Text('Wallet Type', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey)),
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade400),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400), borderRadius: BorderRadius.circular(12)),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
                             value: selectedType,
@@ -104,16 +98,11 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                         ),
                       ),
                       const SizedBox(height: 32),
-
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade600,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            elevation: 0,
-                          ),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade600, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
                           onPressed: () {
                             final name = nameController.text.trim();
                             final balanceText = balanceController.text.trim();
@@ -121,21 +110,12 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
 
                             if (name.isNotEmpty) {
                               if (isEditMode) {
-                                final updatedAccount = accountToEdit.copyWith(
-                                  name: name,
-                                  type: selectedType,
-                                  initialBalance: balance,
-                                );
-                                ref.read(accountRepositoryProvider).insertAccount(
+                                ref.read(accountDaoProvider).insertAccount(
                                     AccountsCompanion.insert(id: drift.Value(accountToEdit.id), name: name, type: selectedType, initialBalance: drift.Value(balance))
                                 );
                               } else {
-                                final newAccount = AccountsCompanion.insert(
-                                  name: name,
-                                  type: selectedType,
-                                  initialBalance: drift.Value(balance),
-                                );
-                                ref.read(accountRepositoryProvider).insertAccount(newAccount);
+                                final newAccount = AccountsCompanion.insert(name: name, type: selectedType, initialBalance: drift.Value(balance));
+                                ref.read(accountDaoProvider).insertAccount(newAccount);
                               }
                               Navigator.pop(context);
                             }
@@ -167,7 +147,7 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
               onPressed: () {
-                ref.read(accountRepositoryProvider).deleteAccount(account);
+                ref.read(accountDaoProvider).deleteAccount(account);
                 Navigator.pop(context, true);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${account.name} deleted.'), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
               },
@@ -194,37 +174,24 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
             pinned: true,
             backgroundColor: Colors.blue.shade700,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-            flexibleSpace: const FlexibleSpaceBar(
-              title: Text('My Wallets', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
-              centerTitle: true,
-            ),
+            leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white), onPressed: () => Navigator.pop(context)),
+            flexibleSpace: const FlexibleSpaceBar(title: Text('My Wallets', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)), centerTitle: true),
           ),
           SliverToBoxAdapter(
             child: Transform.translate(
               offset: const Offset(0, -20),
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
-                ),
+                decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))]),
                 child: StreamBuilder<List<Account>>(
-                  stream: ref.watch(accountRepositoryProvider).watchAllAccounts(),
+                  stream: ref.watch(accountDaoProvider).watchAllAccounts(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) return const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()));
                     if (snapshot.hasError) return Padding(padding: const EdgeInsets.all(40), child: Center(child: Text('Error: ${snapshot.error}')));
 
                     final accounts = snapshot.data ?? [];
                     if (accounts.isEmpty) {
-                      return Padding(
-                        padding: const EdgeInsets.all(40),
-                        child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.account_balance_wallet_outlined, size: 48, color: Colors.grey.shade300), const SizedBox(height: 16), Text('No wallets found.', style: TextStyle(color: Colors.grey.shade500, fontSize: 16))])),
-                      );
+                      return Padding(padding: const EdgeInsets.all(40), child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.account_balance_wallet_outlined, size: 48, color: Colors.grey.shade300), const SizedBox(height: 16), Text('No wallets found.', style: TextStyle(color: Colors.grey.shade500, fontSize: 16))])));
                     }
 
                     return ClipRRect(
@@ -242,12 +209,7 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                           return Dismissible(
                             key: ValueKey(account.id),
                             direction: DismissDirection.endToStart,
-                            background: Container(
-                              color: Colors.red.shade600,
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.symmetric(horizontal: 24),
-                              child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
-                            ),
+                            background: Container(color: Colors.red.shade600, alignment: Alignment.centerRight, padding: const EdgeInsets.symmetric(horizontal: 24), child: const Icon(Icons.delete_outline, color: Colors.white, size: 28)),
                             confirmDismiss: (direction) => _confirmDeleteAccount(context, ref, account),
                             child: Material(
                               color: Colors.transparent,
@@ -257,11 +219,7 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                                   child: Row(
                                     children: [
-                                      Container(
-                                        width: 48, height: 48,
-                                        decoration: BoxDecoration(color: accColor.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
-                                        child: Icon(_getAccountIcon(account.type), color: accColor, size: 24),
-                                      ),
+                                      Container(width: 48, height: 48, decoration: BoxDecoration(color: accColor.withOpacity(0.1), borderRadius: BorderRadius.circular(14)), child: Icon(_getAccountIcon(account.type), color: accColor, size: 24)),
                                       const SizedBox(width: 16),
                                       Expanded(
                                         child: Column(
@@ -292,7 +250,7 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        heroTag: null, // [FIX] "Multiple heroes" දෝෂය වළක්වයි
+        heroTag: null,
         elevation: 2,
         backgroundColor: Colors.blue.shade600,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),

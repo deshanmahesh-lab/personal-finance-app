@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/local_auth_service.dart';
 
-// [වෙනස] Provider භාවිතා කිරීම සඳහා ConsumerStatefulWidget බවට පත් කර ඇත
 class LockScreen extends ConsumerStatefulWidget {
   final Widget child;
 
@@ -52,28 +51,38 @@ class _LockScreenState extends ConsumerState<LockScreen> with WidgetsBindingObse
     if (_isChecking) return;
     setState(() => _isChecking = true);
 
-    // [නව තර්කය] App Lock එක Settings වලින් Off කර ඇත්දැයි බැලීම
-    final prefs = await SharedPreferences.getInstance();
-    final isLockEnabled = prefs.getBool('isAppLockEnabled') ?? true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      // [FIX] Development පහසුව සඳහා Default අගය false කර ඇත
+      final isLockEnabled = prefs.getBool('isAppLockEnabled') ?? false;
 
-    if (!isLockEnabled) {
+      if (!isLockEnabled) {
+        if (mounted) {
+          setState(() {
+            _isAuthenticated = true;
+            _isChecking = false;
+          });
+        }
+        return;
+      }
+
+      final authenticated = await LocalAuthService.authenticate();
+
       if (mounted) {
         setState(() {
-          _isAuthenticated = true; // Lock කර නැත්නම් කෙලින්ම ඇතුළට යවයි
+          _isAuthenticated = authenticated;
           _isChecking = false;
         });
       }
-      return;
-    }
-
-    // Lock කර ඇත්නම් පමණක් Fingerprint ඉල්ලයි
-    final authenticated = await LocalAuthService.authenticate();
-
-    if (mounted) {
-      setState(() {
-        _isAuthenticated = authenticated;
-        _isChecking = false;
-      });
+    } catch (e) {
+      // [FIX] Error එක අල්ලා ගැනීම (Freeze වීම වළක්වයි)
+      debugPrint("Authentication Error: $e");
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = false;
+          _isChecking = false;
+        });
+      }
     }
   }
 

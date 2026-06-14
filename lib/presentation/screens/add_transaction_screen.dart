@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../data/datasources/app_database.dart';
-import '../providers/account_repository_provider.dart';
-import '../../data/repositories/account_repository.dart'; // මෙම පේළිය එකතු කරන්න
+import '../providers/database_provider.dart';
+import '../../data/datasources/daos/transaction_dao.dart';
 
 class AddTransactionScreen extends ConsumerStatefulWidget {
   final TransactionWithCategory? transactionToEdit;
@@ -18,13 +18,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
 
-  // 'expense', 'income', හෝ 'transfer'
   String _transactionType = 'expense';
-
   int? _selectedCategoryId;
-  int? _selectedWalletId; // ආදායම්/වියදම් සඳහා
-  int? _fromWalletId;     // Transfers සඳහා යවන ගිණුම
-  int? _toWalletId;       // Transfers සඳහා ලබන ගිණුම
+  int? _selectedWalletId;
+  int? _fromWalletId;
+  int? _toWalletId;
 
   bool _isLoading = false;
 
@@ -55,7 +53,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     super.dispose();
   }
 
-  // --- Budget Warning Dialog ---
   Future<bool?> _showBudgetWarningDialog(String categoryName, double limit, double projectedTotal) {
     return showDialog<bool>(
       context: context,
@@ -122,7 +119,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     );
   }
 
-  // --- Logic ---
   Future<void> _saveTransaction() async {
     final amount = double.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
@@ -130,14 +126,14 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       return;
     }
 
-    final repository = ref.read(accountRepositoryProvider);
+    final txDao = ref.read(transactionDaoProvider);
+    final catDao = ref.read(categoryDaoProvider);
     final note = _noteController.text.trim().isEmpty ? 'No Note' : _noteController.text.trim();
 
     setState(() { _isLoading = true; });
 
     try {
       if (_transactionType == 'transfer') {
-        // --- Transfer Logic ---
         if (_fromWalletId == null || _toWalletId == null) {
           _showSnackBar('Please select both wallets!', isError: true);
           return;
@@ -147,12 +143,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           return;
         }
 
-        // Editing Transfers currently requires deleting and re-creating for simplicity
         if (widget.transactionToEdit != null) {
-          await repository.deleteTransactionAndReverseBalance(widget.transactionToEdit!.transaction);
+          await txDao.deleteTransactionAndReverseBalance(widget.transactionToEdit!.transaction);
         }
 
-        await repository.addTransfer(
+        await txDao.addTransfer(
           fromAccountId: _fromWalletId!,
           toAccountId: _toWalletId!,
           amount: amount,
@@ -161,7 +156,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         );
 
       } else {
-        // --- Income/Expense Logic ---
         if (_selectedWalletId == null) {
           _showSnackBar('Please select a wallet!', isError: true);
           return;
@@ -174,11 +168,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         final isIncome = _transactionType == 'income';
         final finalAmount = isIncome ? amount : -amount;
 
-        // Budget Check
         if (!isIncome) {
-          final category = await repository.getCategoryById(_selectedCategoryId!);
+          final category = await catDao.getCategoryById(_selectedCategoryId!);
           if (category.budgetLimit != null && category.budgetLimit! > 0) {
-            final currentSpent = await repository.getCurrentMonthSpentForCategory(_selectedCategoryId!);
+            final currentSpent = await txDao.getCurrentMonthSpentForCategory(_selectedCategoryId!);
             double oldAmount = widget.transactionToEdit != null ? widget.transactionToEdit!.transaction.amount.abs() : 0.0;
             final projectedTotal = currentSpent - oldAmount + amount;
 
@@ -200,7 +193,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             accountId: drift.Value(_selectedWalletId!),
             categoryId: drift.Value(_selectedCategoryId!),
           );
-          await repository.updateTransactionAndBalance(oldTx: oldTx, updatedTx: updatedTx, newAmountAbs: amount, isIncome: isIncome);
+          await txDao.updateTransactionAndBalance(oldTx, updatedTx);
         } else {
           final transaction = TransactionsCompanion.insert(
             description: note,
@@ -210,7 +203,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             categoryId: drift.Value(_selectedCategoryId!),
             isRefund: const drift.Value(false),
           );
-          await repository.addTransactionAndUpdateBalance(transaction: transaction, accountId: _selectedWalletId!, amount: amount, isIncome: isIncome);
+          await txDao.addTransactionAndUpdateBalance(transaction, _selectedWalletId!);
         }
       }
 
@@ -283,18 +276,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   ),
                   const SizedBox(height: 40),
 
-                  // --- Details Box ---
                   Container(
                     decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.withOpacity(0.1))),
                     child: Column(
                       children: [
-                        // --- Accounts List Stream ---
                         StreamBuilder<List<Account>>(
-                          stream: ref.watch(accountRepositoryProvider).watchAllAccounts(),
+                          stream: ref.watch(accountDaoProvider).watchAllAccounts(),
                           builder: (context, snapshot) {
                             final accounts = snapshot.data ?? [];
 
-                            // --- Transfer UI ---
                             if (_transactionType == 'transfer') {
                               return Column(
                                 children: [
@@ -315,10 +305,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                                   ),
                                 ],
                               );
-                            }
-                            // --- Income / Expense UI ---
-                            else {
-                              // If there's only 1 account, auto-select it
+                            } else {
                               if (accounts.isNotEmpty && _selectedWalletId == null) {
                                 _selectedWalletId = accounts.first.id;
                               }
@@ -334,7 +321,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                                   ),
                                   Divider(height: 1, indent: 56, color: Colors.grey.withOpacity(0.2)),
                                   StreamBuilder<List<Category>>(
-                                    stream: ref.watch(accountRepositoryProvider).watchCategories(_transactionType == 'income'),
+                                    stream: ref.watch(categoryDaoProvider).watchCategories(_transactionType == 'income'),
                                     builder: (context, catSnapshot) {
                                       final categories = catSnapshot.data ?? [];
                                       return DropdownButtonFormField<int>(
@@ -351,9 +338,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                             }
                           },
                         ),
-
                         Divider(height: 1, indent: 56, color: Colors.grey.withOpacity(0.2)),
-
                         TextField(
                           controller: _noteController,
                           decoration: const InputDecoration(border: InputBorder.none, prefixIcon: Icon(Icons.notes_rounded), hintText: 'Add a note', contentPadding: EdgeInsets.all(16)),

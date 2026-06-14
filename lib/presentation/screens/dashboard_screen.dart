@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/account_repository_provider.dart';
+import '../providers/database_provider.dart';
 import '../../data/datasources/app_database.dart';
-import '../../data/repositories/account_repository.dart';
 import 'add_transaction_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -10,13 +9,11 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final accountRepo = ref.watch(accountRepositoryProvider);
-
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildMyAccounts(accountRepo),
+          _buildMyAccounts(ref),
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -26,7 +23,7 @@ class DashboardScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   const _CashFlowSummaryCard(),
                   const _BudgetProgressSection(),
-                  _buildRecentTransactions(accountRepo),
+                  _buildRecentTransactions(ref),
                 ],
               ),
             ),
@@ -34,19 +31,17 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        heroTag: null, // [FIX] "Multiple heroes" දෝෂය වළක්වයි
+        heroTag: null,
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddTransactionScreen()),
-          );
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const AddTransactionScreen()));
         },
         child: const Icon(Icons.add),
       ),
     );
   }
 
-  Widget _buildMyAccounts(AccountRepository repo) {
+  Widget _buildMyAccounts(WidgetRef ref) {
+    final accountDao = ref.watch(accountDaoProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -55,7 +50,7 @@ class DashboardScreen extends ConsumerWidget {
           child: Text('My Accounts', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ),
         StreamBuilder<List<Account>>(
-          stream: repo.watchAllAccounts(),
+          stream: accountDao.watchAllAccounts(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
             final accounts = snapshot.data ?? [];
@@ -88,7 +83,8 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecentTransactions(AccountRepository repo) {
+  Widget _buildRecentTransactions(WidgetRef ref) {
+    final txDao = ref.watch(transactionDaoProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -98,7 +94,7 @@ class DashboardScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         StreamBuilder(
-          stream: repo.watchTransactionsWithCategories(),
+          stream: txDao.watchTransactionsWithCategories(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
             if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
@@ -135,10 +131,7 @@ class DashboardScreen extends ConsumerWidget {
                     onLongPress: () {
                       if (!isEditableOrDeletable) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Row(children: [Icon(Icons.lock_clock, color: Colors.white), SizedBox(width: 12), Expanded(child: Text('Transactions older than 24 hours cannot be edited.', style: TextStyle(fontSize: 15)))]),
-                            backgroundColor: Colors.orange.shade800, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.only(bottom: 20, left: 16, right: 16), duration: const Duration(seconds: 3),
-                          ),
+                          SnackBar(content: const Row(children: [Icon(Icons.lock_clock, color: Colors.white), SizedBox(width: 12), Expanded(child: Text('Transactions older than 24 hours cannot be edited.', style: TextStyle(fontSize: 15)))]), backgroundColor: Colors.orange.shade800, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), margin: const EdgeInsets.only(bottom: 20, left: 16, right: 16), duration: const Duration(seconds: 3)),
                         );
                         return;
                       }
@@ -151,14 +144,7 @@ class DashboardScreen extends ConsumerWidget {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             actions: [
                               TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700),
-                                onPressed: () {
-                                  Navigator.of(dialogContext).pop();
-                                  Navigator.push(context, MaterialPageRoute(builder: (context) => AddTransactionScreen(transactionToEdit: txItem)));
-                                },
-                                child: const Text('Edit', style: TextStyle(color: Colors.white)),
-                              ),
+                              ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700), onPressed: () { Navigator.of(dialogContext).pop(); Navigator.push(context, MaterialPageRoute(builder: (context) => AddTransactionScreen(transactionToEdit: txItem))); }, child: const Text('Edit', style: TextStyle(color: Colors.white))),
                             ],
                           );
                         },
@@ -175,9 +161,7 @@ class DashboardScreen extends ConsumerWidget {
                   return Dismissible(
                     key: ValueKey(tx.id),
                     direction: DismissDirection.endToStart,
-                    background: Container(
-                      margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade700, borderRadius: BorderRadius.circular(12)), alignment: Alignment.centerRight, padding: const EdgeInsets.symmetric(horizontal: 20), child: const Icon(Icons.delete_outline, color: Colors.white, size: 30),
-                    ),
+                    background: Container(margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: Colors.red.shade700, borderRadius: BorderRadius.circular(12)), alignment: Alignment.centerRight, padding: const EdgeInsets.symmetric(horizontal: 20), child: const Icon(Icons.delete_outline, color: Colors.white, size: 30)),
                     confirmDismiss: (direction) async {
                       return await showDialog<bool>(
                         context: context,
@@ -195,7 +179,7 @@ class DashboardScreen extends ConsumerWidget {
                       );
                     },
                     onDismissed: (direction) {
-                      repo.deleteTransactionAndReverseBalance(tx);
+                      txDao.deleteTransactionAndReverseBalance(tx);
                     },
                     child: transactionCard,
                   );
@@ -217,13 +201,13 @@ class _CashFlowSummaryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final accountRepo = ref.watch(accountRepositoryProvider);
+    final txDao = ref.watch(transactionDaoProvider);
     final now = DateTime.now();
     final monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     final currentMonthName = '${monthNames[now.month - 1]} ${now.year}';
 
     return StreamBuilder<Map<String, double>>(
-      stream: accountRepo.watchMonthlyCashFlow(now),
+      stream: txDao.watchMonthlyCashFlow(now),
       builder: (context, snapshot) {
         final data = snapshot.data ?? {'income': 0.0, 'expense': 0.0};
         final income = data['income']!;
@@ -290,20 +274,21 @@ class _BudgetProgressSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final accountRepo = ref.watch(accountRepositoryProvider);
+    final catDao = ref.watch(categoryDaoProvider);
+    final txDao = ref.watch(transactionDaoProvider);
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
     final endOfMonth = DateTime(now.year, now.month + 1, 1);
 
     return StreamBuilder<List<Category>>(
-        stream: accountRepo.watchCategories(false),
+        stream: catDao.watchCategories(false),
         builder: (context, catSnapshot) {
           if (!catSnapshot.hasData) return const SizedBox.shrink();
           final budgetCategories = catSnapshot.data!.where((c) => c.budgetLimit != null && c.budgetLimit! > 0).toList();
           if (budgetCategories.isEmpty) return const SizedBox.shrink();
 
           return StreamBuilder<Map<String, double>>(
-              stream: accountRepo.watchCategorySummary(false, startOfMonth, endOfMonth),
+              stream: txDao.watchCategorySummary(false, startOfMonth, endOfMonth),
               builder: (context, sumSnapshot) {
                 final summary = sumSnapshot.data ?? {};
                 return Column(
