@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../providers/database_provider.dart';
+import '../providers/language_provider.dart'; // [නව වෙනස]
+import '../../utils/app_translations.dart'; // [නව වෙනස]
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
@@ -79,13 +81,16 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   }
 
   Widget _buildPremiumHeader(Color primaryColor) {
-    String dateText = _isYearlyView ? 'Year $_currentYear' : '${_monthNames[_currentMonth.month - 1]} ${_currentMonth.year}';
+    final lang = ref.watch(languageProvider);
+    String dateText = _isYearlyView ? '$_currentYear' : '${_monthNames[_currentMonth.month - 1]} ${_currentMonth.year}';
+    final title = _isIncome ? AppTranslations.getText('income', lang) : AppTranslations.getText('expense', lang);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(_isIncome ? 'Income Analytics' : 'Expense Analytics', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey)),
+          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey)),
           const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -108,11 +113,25 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   }
 
   Widget _buildSlidingToggles(Color primaryColor) {
+    final lang = ref.watch(languageProvider);
     return Column(
       children: [
-        _buildSingleToggle(title: 'Period:', option1: 'Monthly', option2: 'Yearly', isOption2Selected: _isYearlyView, onChanged: (val) => setState(() => _isYearlyView = val)),
+        _buildSingleToggle(
+            title: AppTranslations.getText('period', lang),
+            option1: AppTranslations.getText('monthly', lang),
+            option2: AppTranslations.getText('yearly', lang),
+            isOption2Selected: _isYearlyView,
+            onChanged: (val) => setState(() => _isYearlyView = val)
+        ),
         const SizedBox(height: 12),
-        _buildSingleToggle(title: 'Type:', option1: 'Expenses', option2: 'Income', isOption2Selected: _isIncome, activeColor: primaryColor, onChanged: (val) => setState(() => _isIncome = val)),
+        _buildSingleToggle(
+            title: AppTranslations.getText('type', lang),
+            option1: AppTranslations.getText('expense', lang),
+            option2: AppTranslations.getText('income', lang),
+            isOption2Selected: _isIncome,
+            activeColor: primaryColor,
+            onChanged: (val) => setState(() => _isIncome = val)
+        ),
       ],
     );
   }
@@ -147,13 +166,15 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   }
 
   Widget _buildMonthlyPieChart() {
+    final lang = ref.watch(languageProvider);
     final endMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
+
     return StreamBuilder<Map<String, double>>(
       stream: ref.watch(transactionDaoProvider).watchCategorySummary(_isIncome, _currentMonth, endMonth),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         final data = snapshot.data ?? {};
-        if (data.isEmpty) return _buildEmptyState('No transactions recorded.');
+        if (data.isEmpty) return _buildEmptyState(AppTranslations.getText('no_data', lang));
 
         final colors = [const Color(0xFF6366F1), const Color(0xFF10B981), const Color(0xFFF59E0B), const Color(0xFFEF4444), const Color(0xFF8B5CF6), const Color(0xFFEC4899), const Color(0xFF14B8A6)];
         double totalAmount = data.values.fold(0, (sum, item) => sum + item);
@@ -180,7 +201,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('Total', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                      Text(AppTranslations.getText('total', lang), style: const TextStyle(color: Colors.grey, fontSize: 14)),
                       Text('Rs. ${totalAmount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -220,13 +241,14 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   }
 
   Widget _buildYearlyBarChart(Color primaryColor) {
+    final lang = ref.watch(languageProvider);
     return StreamBuilder<Map<int, double>>(
       stream: ref.watch(transactionDaoProvider).watchMonthlySummary(_currentYear, _isIncome),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         final data = snapshot.data ?? {for (var i = 1; i <= 12; i++) i: 0.0};
         bool hasData = data.values.any((amount) => amount > 0);
-        if (!hasData) return _buildEmptyState('No data available for $_currentYear.');
+        if (!hasData) return _buildEmptyState(AppTranslations.getText('no_data', lang));
 
         List<BarChartGroupData> barGroups = [];
         final List<Gradient> barGradients = [LinearGradient(colors: [primaryColor, primaryColor.withOpacity(0.6)], begin: Alignment.bottomCenter, end: Alignment.topCenter)];

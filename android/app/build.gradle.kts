@@ -11,7 +11,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        // --- අලුත් කොටස 1: Desugaring සක්‍රිය කිරීම ---
         isCoreLibraryDesugaringEnabled = true
     }
 
@@ -26,6 +25,9 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
+            // Kotlin DSL සඳහා නිවැරදි Syntax එක
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
@@ -40,8 +42,6 @@ flutter {
     source = "../.."
 }
 
-// --- අලුත් කොටස 2: Desugaring සඳහා අවශ්‍ය Library එක ලබා දීම ---
 dependencies {
-    // 2.0.4 වෙනුවට 2.1.4 ලෙස වෙනස් කර ඇත
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

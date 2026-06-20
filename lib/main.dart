@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // [නව වෙනස] SharedPreferences import කිරීම
 import 'package:workmanager/workmanager.dart';
 import 'utils/notification_service.dart';
 import 'data/datasources/app_database.dart';
 import 'presentation/screens/main_screen.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/screens/lock_screen.dart';
+import 'presentation/screens/onboarding/splash_screen.dart';
+import 'presentation/providers/shared_prefs_provider.dart'; // [නව වෙනස] අලුත් provider එක import කිරීම
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -18,7 +21,6 @@ void callbackDispatcher() {
         await NotificationService().init();
 
         final db = AppDatabase();
-        // [නව වෙනස] පැරණි Repository එක වෙනුවට අලුත් TransactionDao භාවිත කිරීම
         final txDao = db.transactionDao;
 
         final cashFlowStream = txDao.watchMonthlyCashFlow(now);
@@ -34,7 +36,6 @@ void callbackDispatcher() {
 
         await NotificationService().showMonthlySummary(title, body);
 
-        // [නව වෙනස] Background task එක අවසානයේ Database එක Close කිරීම
         await db.close();
       }
     } catch (e) {
@@ -49,14 +50,22 @@ String _getMonthName(int month) {
   return months[month - 1];
 }
 
-void main() {
+// [නව වෙනස] main ශ්‍රිතය async කිරීම
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // [නව වෙනස] App එක පෙන්වන්න කලින් Memory එක කියවා අවසන් කරයි
+  final prefs = await SharedPreferences.getInstance();
 
   _initServicesBackground();
 
   runApp(
-    const ProviderScope(
-      child: PersonalFinanceApp(),
+    ProviderScope(
+      overrides: [
+        // [නව වෙනස] කියවාගත් Memory එක මුළු App එකටම ලබා දෙයි
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const PersonalFinanceApp(),
     ),
   );
 }
@@ -106,9 +115,7 @@ class PersonalFinanceApp extends ConsumerWidget {
       ),
 
       debugShowCheckedModeBanner: false,
-      home: const LockScreen(
-        child: MainScreen(),
-      ),
+      home: const SplashScreen(),
     );
   }
 }

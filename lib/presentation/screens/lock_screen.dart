@@ -21,7 +21,7 @@ class _LockScreenState extends ConsumerState<LockScreen> with WidgetsBindingObse
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    Future.delayed(const Duration(milliseconds: 1000), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         _checkAndAuthenticate();
       }
@@ -39,7 +39,7 @@ class _LockScreenState extends ConsumerState<LockScreen> with WidgetsBindingObse
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       setState(() => _isAuthenticated = false);
     } else if (state == AppLifecycleState.resumed && !_isAuthenticated) {
-      Future.delayed(const Duration(milliseconds: 1000), () {
+      Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
           _checkAndAuthenticate();
         }
@@ -53,8 +53,8 @@ class _LockScreenState extends ConsumerState<LockScreen> with WidgetsBindingObse
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      // [FIX] Development පහසුව සඳහා Default අගය false කර ඇත
-      final isLockEnabled = prefs.getBool('isAppLockEnabled') ?? false;
+      // [FIX] Provider එක Save කරන 'app_lock_enabled' Key එකම භාවිතා කිරීම
+      final isLockEnabled = prefs.getBool('app_lock_enabled') ?? false;
 
       if (!isLockEnabled) {
         if (mounted) {
@@ -75,7 +75,6 @@ class _LockScreenState extends ConsumerState<LockScreen> with WidgetsBindingObse
         });
       }
     } catch (e) {
-      // [FIX] Error එක අල්ලා ගැනීම (Freeze වීම වළක්වයි)
       debugPrint("Authentication Error: $e");
       if (mounted) {
         setState(() {

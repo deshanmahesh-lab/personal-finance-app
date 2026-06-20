@@ -3,124 +3,91 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/theme_provider.dart';
 import '../providers/database_provider.dart';
 import '../providers/app_lock_provider.dart';
+import '../providers/language_provider.dart';
+import '../../utils/app_translations.dart';
+import '../../services/sms_parser_service.dart';
+import 'sms_analyzer_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
-  Future<void> _showResetConfirmationDialog(BuildContext context, WidgetRef ref) async {
+  Future<void> _showResetConfirmationDialog(BuildContext context, WidgetRef ref, String lang) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (BuildContext dialogContext) {
+      builder: (context) {
         return AlertDialog(
-          backgroundColor: Theme.of(context).colorScheme.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: Row(
-            children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.red.shade600, size: 28),
-              const SizedBox(width: 12),
-              const Text('Reset All Data?', style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: const Text('Are you absolutely sure you want to delete all your transactions?\n\nThis action cannot be undone. Your wallets and categories will remain, but all balances will be reset to Rs. 0.', style: TextStyle(fontSize: 15, height: 1.5)),
+          title: Text(AppTranslations.getText('reset_confirm_title', lang)),
+          content: Text(AppTranslations.getText('factory_reset_desc', lang)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 16))),
-            ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Yes, Reset Data', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppTranslations.getText('cancel', lang))),
+            ElevatedButton(onPressed: () => Navigator.pop(context, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: Text(AppTranslations.getText('delete', lang))),
           ],
         );
       },
     );
 
     if (confirmed == true) {
-      try {
-        await ref.read(transactionDaoProvider).resetAllData();
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: const Row(children: [Icon(Icons.check_circle_outline, color: Colors.white), SizedBox(width: 12), Expanded(child: Text('All data has been successfully reset.', style: TextStyle(fontWeight: FontWeight.bold)))]), backgroundColor: Colors.green.shade600, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))));
-        }
-      } catch (e) {
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error resetting data: $e'), backgroundColor: Colors.red.shade600));
-      }
+      await ref.read(transactionDaoProvider).resetAllData();
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data Reset Successful')));
     }
+  }
+
+  void _showLanguagePicker(BuildContext context, WidgetRef ref, String currentLanguage) {
+    showModalBottomSheet(
+        context: context,
+        builder: (context) {
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(title: const Text('English', style: TextStyle(fontWeight: FontWeight.bold)), onTap: () { ref.read(languageProvider.notifier).setLanguage('English'); Navigator.pop(context); }),
+                ListTile(title: const Text('සිංහල', style: TextStyle(fontWeight: FontWeight.bold)), onTap: () { ref.read(languageProvider.notifier).setLanguage('සිංහල'); Navigator.pop(context); }),
+                ListTile(title: const Text('தமிழ்', style: TextStyle(fontWeight: FontWeight.bold)), onTap: () { ref.read(languageProvider.notifier).setLanguage('தமிழ்'); Navigator.pop(context); }),
+              ],
+            ),
+          );
+        }
+    );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentTheme = ref.watch(themeProvider);
     final isAppLockEnabled = ref.watch(appLockProvider);
+    final currentLang = ref.watch(languageProvider);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent, elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded), onPressed: () => Navigator.pop(context)),
-        title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)), centerTitle: true,
-      ),
-      body: SafeArea(
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          children: [
-            const Text('Appearance (පෙනුම)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))]),
-              child: Material(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(20),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    RadioListTile<ThemeMode>(title: const Text('System Default', style: TextStyle(fontWeight: FontWeight.w600)), subtitle: Text('දුරකථනයේ පවතින Theme එකට ස්වයංක්‍රීයව හැඩගැසේ', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)), value: ThemeMode.system, groupValue: currentTheme, activeColor: Colors.blue.shade600, onChanged: (value) { if (value != null) ref.read(themeProvider.notifier).setTheme(value); }),
-                    Divider(height: 1, indent: 20, endIndent: 20, color: Colors.grey.withOpacity(0.1)),
-                    RadioListTile<ThemeMode>(title: const Text('Light Mode', style: TextStyle(fontWeight: FontWeight.w600)), value: ThemeMode.light, groupValue: currentTheme, activeColor: Colors.blue.shade600, onChanged: (value) { if (value != null) ref.read(themeProvider.notifier).setTheme(value); }),
-                    Divider(height: 1, indent: 20, endIndent: 20, color: Colors.grey.withOpacity(0.1)),
-                    RadioListTile<ThemeMode>(title: const Text('Dark Mode', style: TextStyle(fontWeight: FontWeight.w600)), value: ThemeMode.dark, groupValue: currentTheme, activeColor: Colors.blue.shade600, onChanged: (value) { if (value != null) ref.read(themeProvider.notifier).setTheme(value); }),
-                  ],
-                ),
-              ),
+      appBar: AppBar(title: Text(AppTranslations.getText('settings', currentLang))),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(AppTranslations.getText('preferences', currentLang), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          Card(
+            child: Column(
+              children: [
+                ListTile(leading: const Icon(Icons.language), title: Text(AppTranslations.getText('language', currentLang)), subtitle: Text(currentLang), onTap: () => _showLanguagePicker(context, ref, currentLang)),
+                const Divider(),
+                RadioListTile<ThemeMode>(title: Text(AppTranslations.getText('system_default', currentLang)), value: ThemeMode.system, groupValue: currentTheme, onChanged: (v) => ref.read(themeProvider.notifier).setTheme(v!)),
+                RadioListTile<ThemeMode>(title: Text(AppTranslations.getText('light_mode', currentLang)), value: ThemeMode.light, groupValue: currentTheme, onChanged: (v) => ref.read(themeProvider.notifier).setTheme(v!)),
+                RadioListTile<ThemeMode>(title: Text(AppTranslations.getText('dark_mode', currentLang)), value: ThemeMode.dark, groupValue: currentTheme, onChanged: (v) => ref.read(themeProvider.notifier).setTheme(v!)),
+              ],
             ),
-            const SizedBox(height: 32),
-            const Text('Security & Data (ආරක්ෂාව සහ දත්ත)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))]),
-              child: Material(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(20),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    SwitchListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      secondary: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), shape: BoxShape.circle), child: Icon(Icons.fingerprint_rounded, color: Colors.blue.shade600)),
-                      title: const Text('App Lock', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      subtitle: const Text('Require Fingerprint or PIN to open', style: TextStyle(fontSize: 13, color: Colors.grey)),
-                      value: isAppLockEnabled,
-                      activeColor: Colors.blue.shade600,
-                      onChanged: (bool value) {
-                        ref.read(appLockProvider.notifier).setLock(value);
-                      },
-                    ),
-                    Divider(height: 1, indent: 64, endIndent: 20, color: Colors.grey.withOpacity(0.1)),
-                    InkWell(
-                      onTap: () => _showResetConfirmationDialog(context, ref),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Row(
-                          children: [
-                            Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), shape: BoxShape.circle), child: Icon(Icons.delete_forever_rounded, color: Colors.red.shade600)),
-                            const SizedBox(width: 16),
-                            const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Factory Reset', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), SizedBox(height: 4), Text('Delete all transactions & reset balances', style: TextStyle(fontSize: 13, color: Colors.grey))])),
-                            const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          ),
+          const SizedBox(height: 24),
+
+          Text(AppTranslations.getText('security_data', currentLang), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+          Card(
+            child: Column(
+              children: [
+                SwitchListTile(title: Text(AppTranslations.getText('enable_app_lock', currentLang)), value: isAppLockEnabled, onChanged: (v) => ref.read(appLockProvider.notifier).setLock(v)),
+                const Divider(),
+                ListTile(leading: const Icon(Icons.sms), title: Text(AppTranslations.getText('sync_sms', currentLang)), subtitle: Text(AppTranslations.getText('sync_sms_desc', currentLang)), onTap: () async { await SmsParserService(ref.read(appDatabaseProvider)).syncRecentBankSms(); }),
+                const Divider(),
+                ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: Text(AppTranslations.getText('factory_reset', currentLang), style: const TextStyle(color: Colors.red)), subtitle: Text(AppTranslations.getText('factory_reset_desc', currentLang)), onTap: () => _showResetConfirmationDialog(context, ref, currentLang)),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

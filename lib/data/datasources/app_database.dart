@@ -7,22 +7,25 @@ import 'package:path/path.dart' as p;
 import '../models/category_table.dart';
 import '../models/account_table.dart';
 import '../models/transaction_table.dart';
+import '../models/category_rule_table.dart'; // [නව වෙනස] අලුත් Table එක import කිරීම
 
 import 'daos/account_dao.dart';
 import 'daos/category_dao.dart';
 import 'daos/transaction_dao.dart';
+import 'daos/category_rule_dao.dart'; // [නව වෙනස] අලුත් DAO එක import කිරීම
 
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Categories, Accounts, Transactions],
-  daos: [AccountDao, CategoryDao, TransactionDao],
+  tables: [Categories, Accounts, Transactions, CategoryRules], // [නව වෙනස]
+  daos: [AccountDao, CategoryDao, TransactionDao, CategoryRuleDao], // [නව වෙනස]
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  // [නව වෙනස] පැරණි අගය 2 වූ බැවින්, මෙය 3 ලෙස යාවත්කාලීන කර ඇත
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -37,6 +40,10 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(transactions, transactions.transferToAccountId);
           await m.addColumn(transactions, transactions.isRefund);
           await m.addColumn(transactions, transactions.refundedTransactionId);
+        }
+        // [නව වෙනස] Version 3 වෙත Update වීමේදී අලුත් Table එක නිර්මාණය කිරීම
+        if (from < 3) {
+          await m.createTable(categoryRules);
         }
       },
     );

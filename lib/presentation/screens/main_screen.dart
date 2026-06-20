@@ -1,82 +1,71 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/language_provider.dart';
+import '../../utils/app_translations.dart';
 import 'dashboard_screen.dart';
 import 'analytics_screen.dart';
 import 'manage_categories_screen.dart';
-import 'settings_screen.dart'; // [නව වෙනස 1] Settings තිරය සම්බන්ධ කිරීම
+import 'settings_screen.dart';
 
-class MainScreen extends StatefulWidget {
+class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  ConsumerState<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
-  // මුලින්ම විවෘත වන විට පෙන්විය යුතු තිරයේ අංකය (0 = Dashboard)
+class _MainScreenState extends ConsumerState<MainScreen> {
   int _selectedIndex = 0;
 
-  // පහළ බොත්තම් වලට අදාළ තිර ලැයිස්තුව
   final List<Widget> _screens = const [
     DashboardScreen(),
     AnalyticsScreen(),
     ManageCategoriesScreen(),
   ];
 
-  // [නව වෙනස 2] තිරයට අදාළ මාතෘකා ලැයිස්තුව (AppBar එක සඳහා)
-  final List<String> _titles = const [
-    'Dashboard',
-    'Analytics',
-    'Categories',
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final currentLang = ref.watch(languageProvider);
+
+    final List<String> titles = [
+      AppTranslations.getText('title_dashboard', currentLang),
+      AppTranslations.getText('title_analytics', currentLang),
+      AppTranslations.getText('title_categories', currentLang),
+    ];
+
     return Scaffold(
-      // [නව වෙනස 3] සැම තිරයකටම පොදු AppBar එකක් එක් කිරීම
       appBar: AppBar(
-        title: Text(_titles[_selectedIndex]), // තෝරාගත් තිරයට අදාළ නම පෙන්වීම
+        title: Text(titles[_selectedIndex]),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // Settings තිරය වෙත යාම
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
             },
           ),
         ],
       ),
-      // IndexedStack භාවිතා කරන්නේ අප එක් තිරයකින් තව එකකට යන විට
-      // පරණ තිරයේ දත්ත Refresh නොවී එලෙසම තබා ගැනීමටයි (State preservation)
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,
       ),
-      // නවීන Material 3 Bottom Navigation Bar එක
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (int index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+          setState(() { _selectedIndex = index; });
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            selectedIcon: Icon(Icons.home),
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
+            selectedIcon: const Icon(Icons.home), icon: const Icon(Icons.home_outlined),
+            label: AppTranslations.getText('nav_home', currentLang),
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.pie_chart),
-            icon: Icon(Icons.pie_chart_outline),
-            label: 'Analytics',
+            selectedIcon: const Icon(Icons.pie_chart), icon: const Icon(Icons.pie_chart_outline),
+            label: AppTranslations.getText('nav_analytics', currentLang),
           ),
           NavigationDestination(
-            selectedIcon: Icon(Icons.category),
-            icon: Icon(Icons.category_outlined),
-            label: 'Categories',
+            selectedIcon: const Icon(Icons.category), icon: const Icon(Icons.category_outlined),
+            label: AppTranslations.getText('nav_categories', currentLang),
           ),
         ],
       ),

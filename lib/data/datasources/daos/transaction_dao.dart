@@ -114,8 +114,6 @@ class TransactionDao extends DatabaseAccessor<AppDatabase> with _$TransactionDao
     });
   }
 
-  // --- Analytics & Summary Queries (Moved from Old Repository) ---
-
   Stream<Map<String, double>> watchCategorySummary(bool isIncome, DateTime start, DateTime end) {
     return watchTransactionsByDateRange(start, end).map((items) {
       final Map<String, double> summary = {};
@@ -220,5 +218,22 @@ class TransactionDao extends DatabaseAccessor<AppDatabase> with _$TransactionDao
       await delete(transactions).go();
       await db.accountDao.resetAllAccounts();
     });
+  }
+
+  // --- BUG 1 FIXED: High-Precision Duplicate Checking ---
+  Future<bool> isTransactionExists(double amount, String description, DateTime date) async {
+    // පළමු අකුරු 5 සහ දවස පරීක්ෂා කිරීම ඉවත් කර ඇත.
+    // ඒ වෙනුවට SMS එක පැමිණි නිශ්චිත වේලාව (විනාඩියක පරතරයක් සහිතව) සහ මුදල පරීක්ෂා කරයි.
+    final windowStart = date.subtract(const Duration(minutes: 1));
+    final windowEnd = date.add(const Duration(minutes: 1));
+
+    final query = select(transactions)
+      ..where((t) =>
+      t.amount.equals(amount) &
+      t.date.isBiggerOrEqualValue(windowStart) &
+      t.date.isSmallerThanValue(windowEnd));
+
+    final results = await query.get();
+    return results.isNotEmpty;
   }
 }

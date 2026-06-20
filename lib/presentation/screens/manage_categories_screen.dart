@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../data/datasources/app_database.dart';
 import '../providers/database_provider.dart';
+import '../providers/language_provider.dart';
+import '../../utils/app_translations.dart';
 
 class ManageCategoriesScreen extends ConsumerStatefulWidget {
   const ManageCategoriesScreen({super.key});
@@ -16,6 +18,7 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(languageProvider);
     final backgroundColor = Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.2);
     final primaryColor = _isIncome ? Colors.green.shade600 : Colors.red.shade600;
 
@@ -25,7 +28,7 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
         child: Column(
           children: [
             const SizedBox(height: 24),
-            _buildSlidingToggles(primaryColor),
+            _buildSlidingToggles(primaryColor, lang),
             const SizedBox(height: 16),
             Expanded(child: _CategoryList(isIncome: _isIncome)),
           ],
@@ -38,12 +41,12 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         onPressed: () => _showAddCategoryDialog(context, ref, _isIncome),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Category', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+        label: Text(AppTranslations.getText('add_category', lang), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
       ),
     );
   }
 
-  Widget _buildSlidingToggles(Color primaryColor) {
+  Widget _buildSlidingToggles(Color primaryColor, String lang) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Container(
@@ -59,8 +62,8 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
             ),
             Row(
               children: [
-                Expanded(child: GestureDetector(onTap: () => setState(() => _isIncome = false), behavior: HitTestBehavior.opaque, child: Center(child: Text('Expenses', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: !_isIncome ? primaryColor : Colors.grey.shade600))))),
-                Expanded(child: GestureDetector(onTap: () => setState(() => _isIncome = true), behavior: HitTestBehavior.opaque, child: Center(child: Text('Income', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _isIncome ? primaryColor : Colors.grey.shade600))))),
+                Expanded(child: GestureDetector(onTap: () => setState(() => _isIncome = false), behavior: HitTestBehavior.opaque, child: Center(child: Text(AppTranslations.getText('expense', lang), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: !_isIncome ? primaryColor : Colors.grey.shade600))))),
+                Expanded(child: GestureDetector(onTap: () => setState(() => _isIncome = true), behavior: HitTestBehavior.opaque, child: Center(child: Text(AppTranslations.getText('income', lang), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _isIncome ? primaryColor : Colors.grey.shade600))))),
               ],
             ),
           ],
@@ -70,6 +73,7 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
   }
 
   void _showAddCategoryDialog(BuildContext context, WidgetRef ref, bool isIncome) {
+    final lang = ref.read(languageProvider);
     final nameController = TextEditingController();
     final budgetController = TextEditingController();
     final dialogColor = isIncome ? Colors.green.shade600 : Colors.red.shade600;
@@ -86,11 +90,11 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('New ${isIncome ? 'Income' : 'Expense'}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                Text(AppTranslations.getText('new_category', lang), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 24),
                 TextField(
                   controller: nameController,
-                  decoration: InputDecoration(labelText: 'Category Name', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: dialogColor, width: 2)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
+                  decoration: InputDecoration(labelText: AppTranslations.getText('cat_name', lang), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: dialogColor, width: 2)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
                   autofocus: true,
                   textCapitalization: TextCapitalization.words,
                 ),
@@ -99,7 +103,7 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
                   TextField(
                     controller: budgetController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: InputDecoration(labelText: 'Monthly Budget (Optional)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: dialogColor, width: 2)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
+                    decoration: InputDecoration(labelText: AppTranslations.getText('monthly_budget_opt', lang), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: dialogColor, width: 2)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
                   ),
                 ],
                 const SizedBox(height: 32),
@@ -117,7 +121,7 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
                         Navigator.pop(context);
                       }
                     },
-                    child: const Text('Save Category', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: Text(AppTranslations.getText('save_cat', lang), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ),
               ],
@@ -135,6 +139,7 @@ class _CategoryList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(languageProvider);
     final stream = ref.watch(categoryDaoProvider).watchCategories(isIncome);
     final themeColor = isIncome ? Colors.green.shade600 : Colors.red.shade600;
 
@@ -142,7 +147,6 @@ class _CategoryList extends ConsumerWidget {
       stream: stream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-        if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
 
         final categories = snapshot.data ?? [];
         if (categories.isEmpty) {
@@ -207,6 +211,7 @@ class _CategoryList extends ConsumerWidget {
   }
 
   void _showEditCategoryDialog(BuildContext context, WidgetRef ref, Category category, Color themeColor) {
+    final lang = ref.read(languageProvider);
     final nameController = TextEditingController(text: category.name);
     final budgetController = TextEditingController(text: category.budgetLimit != null ? category.budgetLimit!.toStringAsFixed(0) : '');
 
@@ -222,11 +227,11 @@ class _CategoryList extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Edit Category', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                Text(AppTranslations.getText('edit_cat', lang), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 24),
                 TextField(
                   controller: nameController,
-                  decoration: InputDecoration(labelText: 'Category Name', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: themeColor, width: 2)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
+                  decoration: InputDecoration(labelText: AppTranslations.getText('cat_name', lang), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: themeColor, width: 2)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
                   autofocus: true,
                   textCapitalization: TextCapitalization.words,
                 ),
@@ -235,7 +240,7 @@ class _CategoryList extends ConsumerWidget {
                   TextField(
                     controller: budgetController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: InputDecoration(labelText: 'Monthly Budget Limit', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: themeColor, width: 2)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
+                    decoration: InputDecoration(labelText: AppTranslations.getText('monthly_budget_opt', lang), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: themeColor, width: 2)), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)),
                   ),
                 ],
                 const SizedBox(height: 32),
@@ -253,7 +258,7 @@ class _CategoryList extends ConsumerWidget {
                         Navigator.pop(context);
                       }
                     },
-                    child: const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    child: Text(AppTranslations.getText('update', lang), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ),
               ],
@@ -265,25 +270,25 @@ class _CategoryList extends ConsumerWidget {
   }
 
   Future<bool?> _confirmDeleteCategory(BuildContext context, WidgetRef ref, Category category) async {
+    final lang = ref.read(languageProvider);
     return await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Delete Category', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(AppTranslations.getText('del_cat_confirm', lang), style: const TextStyle(fontWeight: FontWeight.bold)),
           content: Text('Are you sure you want to delete "${category.name}"?\n\nPast transactions will not be affected.'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(AppTranslations.getText('cancel', lang), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
               onPressed: () {
                 final deletedCategory = category.copyWith(isActive: false);
                 ref.read(categoryDaoProvider).updateCategory(deletedCategory);
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${category.name} deleted.'), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
               },
-              child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(AppTranslations.getText('delete', lang), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         );

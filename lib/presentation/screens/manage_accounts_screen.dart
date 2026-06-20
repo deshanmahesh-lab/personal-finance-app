@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../data/datasources/app_database.dart';
 import '../providers/database_provider.dart';
+import '../providers/language_provider.dart';
+import '../../utils/app_translations.dart';
 
 class ManageAccountsScreen extends ConsumerStatefulWidget {
   const ManageAccountsScreen({super.key});
@@ -32,6 +34,7 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
   }
 
   void _showAddEditAccountDialog(BuildContext context, WidgetRef ref, {Account? accountToEdit}) {
+    final lang = ref.read(languageProvider);
     final isEditMode = accountToEdit != null;
     final nameController = TextEditingController(text: isEditMode ? accountToEdit.name : '');
     final balanceController = TextEditingController(text: isEditMode ? accountToEdit.initialBalance.toStringAsFixed(0) : '');
@@ -51,12 +54,12 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(isEditMode ? 'Edit Wallet' : 'New Wallet', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      Text(isEditMode ? AppTranslations.getText('edit_wallet', lang) : AppTranslations.getText('new_wallet', lang), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 24),
                       TextField(
                         controller: nameController,
                         decoration: InputDecoration(
-                          labelText: 'Wallet Name (e.g. BOC, Cash in Hand)',
+                          labelText: AppTranslations.getText('wallet_name', lang),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.blue.shade600, width: 2)),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -69,7 +72,7 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                         controller: balanceController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         decoration: InputDecoration(
-                          labelText: isEditMode ? 'Adjust Balance' : 'Starting Balance',
+                          labelText: isEditMode ? AppTranslations.getText('adj_balance', lang) : AppTranslations.getText('start_balance', lang),
                           prefixText: 'Rs. ',
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.blue.shade600, width: 2)),
@@ -77,7 +80,7 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      const Text('Wallet Type', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey)),
+                      Text(AppTranslations.getText('wallet_type', lang), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey)),
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -120,7 +123,7 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                               Navigator.pop(context);
                             }
                           },
-                          child: const Text('Save Wallet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                          child: Text(AppTranslations.getText('save_wallet', lang), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                         ),
                       ),
                     ],
@@ -134,16 +137,17 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
   }
 
   Future<bool?> _confirmDeleteAccount(BuildContext context, WidgetRef ref, Account account) async {
+    final lang = ref.read(languageProvider);
     return await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Delete Wallet?', style: TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(AppTranslations.getText('del_wallet_confirm', lang), style: const TextStyle(fontWeight: FontWeight.bold)),
           content: Text('Are you sure you want to delete "${account.name}"?\n\nWarning: This might affect your transaction history.'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(AppTranslations.getText('cancel', lang), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
               onPressed: () {
@@ -151,7 +155,7 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                 Navigator.pop(context, true);
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${account.name} deleted.'), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
               },
-              child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(AppTranslations.getText('delete', lang), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -161,6 +165,7 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(languageProvider);
     final backgroundColor = Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3);
 
     return Scaffold(
@@ -175,7 +180,7 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
             backgroundColor: Colors.blue.shade700,
             elevation: 0,
             leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white), onPressed: () => Navigator.pop(context)),
-            flexibleSpace: const FlexibleSpaceBar(title: Text('My Wallets', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)), centerTitle: true),
+            flexibleSpace: FlexibleSpaceBar(title: Text(AppTranslations.getText('my_wallets', lang), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)), centerTitle: true),
           ),
           SliverToBoxAdapter(
             child: Transform.translate(
@@ -187,11 +192,10 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
                   stream: ref.watch(accountDaoProvider).watchAllAccounts(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) return const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()));
-                    if (snapshot.hasError) return Padding(padding: const EdgeInsets.all(40), child: Center(child: Text('Error: ${snapshot.error}')));
 
                     final accounts = snapshot.data ?? [];
                     if (accounts.isEmpty) {
-                      return Padding(padding: const EdgeInsets.all(40), child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.account_balance_wallet_outlined, size: 48, color: Colors.grey.shade300), const SizedBox(height: 16), Text('No wallets found.', style: TextStyle(color: Colors.grey.shade500, fontSize: 16))])));
+                      return Padding(padding: const EdgeInsets.all(40), child: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.account_balance_wallet_outlined, size: 48, color: Colors.grey.shade300), const SizedBox(height: 16), Text(AppTranslations.getText('no_accounts', lang), style: TextStyle(color: Colors.grey.shade500, fontSize: 16))])));
                     }
 
                     return ClipRRect(
@@ -256,7 +260,7 @@ class _ManageAccountsScreenState extends ConsumerState<ManageAccountsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         onPressed: () => _showAddEditAccountDialog(context, ref),
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Wallet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+        label: Text(AppTranslations.getText('add_wallet', lang), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
       ),
     );
   }

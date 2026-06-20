@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../data/datasources/app_database.dart';
 import '../providers/database_provider.dart';
+import '../providers/language_provider.dart';
+import '../../utils/app_translations.dart';
 import '../../data/datasources/daos/transaction_dao.dart';
 
 class AddTransactionScreen extends ConsumerStatefulWidget {
@@ -54,6 +56,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   }
 
   Future<bool?> _showBudgetWarningDialog(String categoryName, double limit, double projectedTotal) {
+    final lang = ref.read(languageProvider);
     return showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -71,19 +74,16 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                   child: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 32),
                 ),
                 const SizedBox(height: 20),
-                const Text('Budget Exceeded!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                Text(AppTranslations.getText('budget_exceeded', lang), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 RichText(
                   textAlign: TextAlign.center,
                   text: TextSpan(
                     style: TextStyle(fontSize: 15, color: Colors.grey.shade600, height: 1.5),
                     children: [
-                      const TextSpan(text: 'Adding this transaction will exceed your budget for '),
                       TextSpan(text: '"$categoryName".\n\n', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      const TextSpan(text: 'Budget Limit: '),
-                      TextSpan(text: 'Rs. ${limit.toStringAsFixed(0)}\n', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-                      const TextSpan(text: 'Projected Total: '),
-                      TextSpan(text: 'Rs. ${projectedTotal.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                      TextSpan(text: 'Budget Limit: Rs. ${limit.toStringAsFixed(0)}\n', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+                      TextSpan(text: 'Projected Total: Rs. ${projectedTotal.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
                     ],
                   ),
                 ),
@@ -94,19 +94,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                       child: TextButton(
                         onPressed: () => Navigator.of(dialogContext).pop(false),
                         style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
-                        child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 16)),
+                        child: Text(AppTranslations.getText('cancel', lang), style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 16)),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.shade600, elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
-                        ),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade600, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                         onPressed: () => Navigator.of(dialogContext).pop(true),
-                        child: const Text('Save Anyway', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                        child: Text(AppTranslations.getText('save_anyway', lang), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
                       ),
                     ),
                   ],
@@ -120,22 +116,25 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   }
 
   Future<void> _saveTransaction() async {
+    final lang = ref.read(languageProvider);
     final amount = double.tryParse(_amountController.text);
     if (amount == null || amount <= 0) {
-      _showSnackBar('Please enter a valid amount!', isError: true);
+      _showSnackBar(AppTranslations.getText('valid_amount_err', lang), isError: true);
       return;
     }
 
-    final txDao = ref.read(transactionDaoProvider);
-    final catDao = ref.read(categoryDaoProvider);
-    final note = _noteController.text.trim().isEmpty ? 'No Note' : _noteController.text.trim();
+    final db = ref.read(appDatabaseProvider);
+    final txDao = db.transactionDao;
+    final catDao = db.categoryDao;
+    final ruleDao = db.categoryRuleDao;
 
+    final note = _noteController.text.trim().isEmpty ? 'No Note' : _noteController.text.trim();
     setState(() { _isLoading = true; });
 
     try {
       if (_transactionType == 'transfer') {
         if (_fromWalletId == null || _toWalletId == null) {
-          _showSnackBar('Please select both wallets!', isError: true);
+          _showSnackBar(AppTranslations.getText('wallet_err', lang), isError: true);
           return;
         }
         if (_fromWalletId == _toWalletId) {
@@ -143,25 +142,17 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           return;
         }
 
-        if (widget.transactionToEdit != null) {
-          await txDao.deleteTransactionAndReverseBalance(widget.transactionToEdit!.transaction);
-        }
+        if (widget.transactionToEdit != null) await txDao.deleteTransactionAndReverseBalance(widget.transactionToEdit!.transaction);
 
-        await txDao.addTransfer(
-          fromAccountId: _fromWalletId!,
-          toAccountId: _toWalletId!,
-          amount: amount,
-          note: note,
-          date: DateTime.now(),
-        );
+        await txDao.addTransfer(fromAccountId: _fromWalletId!, toAccountId: _toWalletId!, amount: amount, note: note, date: DateTime.now());
 
       } else {
         if (_selectedWalletId == null) {
-          _showSnackBar('Please select a wallet!', isError: true);
+          _showSnackBar(AppTranslations.getText('wallet_err', lang), isError: true);
           return;
         }
         if (_selectedCategoryId == null) {
-          _showSnackBar('Please select a category!', isError: true);
+          _showSnackBar(AppTranslations.getText('cat_err', lang), isError: true);
           return;
         }
 
@@ -187,28 +178,21 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
         if (widget.transactionToEdit != null) {
           final oldTx = widget.transactionToEdit!.transaction;
-          final updatedTx = TransactionsCompanion(
-            description: drift.Value(note),
-            amount: drift.Value(finalAmount),
-            accountId: drift.Value(_selectedWalletId!),
-            categoryId: drift.Value(_selectedCategoryId!),
-          );
+          final updatedTx = TransactionsCompanion(description: drift.Value(note), amount: drift.Value(finalAmount), accountId: drift.Value(_selectedWalletId!), categoryId: drift.Value(_selectedCategoryId!));
           await txDao.updateTransactionAndBalance(oldTx, updatedTx);
+
+          if (!isIncome) {
+            final rawMerchant = note.replaceFirst('SMS:', '').trim();
+            await ruleDao.learnRule(rawMerchant, _selectedCategoryId!);
+          }
         } else {
-          final transaction = TransactionsCompanion.insert(
-            description: note,
-            amount: finalAmount,
-            date: DateTime.now(),
-            accountId: _selectedWalletId!,
-            categoryId: drift.Value(_selectedCategoryId!),
-            isRefund: const drift.Value(false),
-          );
+          final transaction = TransactionsCompanion.insert(description: note, amount: finalAmount, date: DateTime.now(), accountId: _selectedWalletId!, categoryId: drift.Value(_selectedCategoryId!), isRefund: const drift.Value(false));
           await txDao.addTransactionAndUpdateBalance(transaction, _selectedWalletId!);
         }
       }
 
       if (mounted) {
-        _showSnackBar(widget.transactionToEdit != null ? 'Transaction Updated' : 'Transaction Saved', isError: false);
+        _showSnackBar(AppTranslations.getText(widget.transactionToEdit != null ? 'tx_updated' : 'tx_saved', lang), isError: false);
         Navigator.pop(context);
       }
     } catch (e) {
@@ -231,6 +215,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = ref.watch(languageProvider);
+
     Color primaryColor;
     if (_transactionType == 'income') primaryColor = Colors.green.shade600;
     else if (_transactionType == 'transfer') primaryColor = Colors.blue.shade600;
@@ -242,14 +228,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         backgroundColor: Colors.transparent, elevation: 0,
         leading: IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
         title: Container(
+          width: double.infinity, // [FIX] Available space එක සම්පූර්ණයෙන්ම ගැනීම
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(24)),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              _buildSimpleTab('Expense', _transactionType == 'expense', () => setState(() => _transactionType = 'expense')),
-              _buildSimpleTab('Income', _transactionType == 'income', () => setState(() => _transactionType = 'income')),
-              _buildSimpleTab('Transfer', _transactionType == 'transfer', () => setState(() => _transactionType = 'transfer')),
+              // [FIX] Expanded හරහා ඉඩ සමානව බෙදා දීම
+              Expanded(child: _buildSimpleTab(AppTranslations.getText('expense', lang), _transactionType == 'expense', () => setState(() => _transactionType = 'expense'))),
+              Expanded(child: _buildSimpleTab(AppTranslations.getText('income', lang), _transactionType == 'income', () => setState(() => _transactionType = 'income'))),
+              Expanded(child: _buildSimpleTab(AppTranslations.getText('transfer', lang), _transactionType == 'transfer', () => setState(() => _transactionType = 'transfer'))),
             ],
           ),
         ),
@@ -262,7 +249,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                 children: [
-                  const Text('How much?', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  Text(AppTranslations.getText('how_much', lang), textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.w500)),
                   TextField(
                     controller: _amountController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -291,7 +278,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                                   DropdownButtonFormField<int>(
                                     value: _fromWalletId,
                                     decoration: const InputDecoration(border: InputBorder.none, prefixIcon: Icon(Icons.account_balance_wallet_outlined), contentPadding: EdgeInsets.all(16)),
-                                    hint: const Text('From Wallet'),
+                                    hint: Text(AppTranslations.getText('from_wallet', lang)),
                                     items: accounts.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))).toList(),
                                     onChanged: (v) => setState(() => _fromWalletId = v),
                                   ),
@@ -299,7 +286,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                                   DropdownButtonFormField<int>(
                                     value: _toWalletId,
                                     decoration: const InputDecoration(border: InputBorder.none, prefixIcon: Icon(Icons.account_balance_rounded), contentPadding: EdgeInsets.all(16)),
-                                    hint: const Text('To Wallet'),
+                                    hint: Text(AppTranslations.getText('to_wallet', lang)),
                                     items: accounts.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))).toList(),
                                     onChanged: (v) => setState(() => _toWalletId = v),
                                   ),
@@ -315,7 +302,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                                   DropdownButtonFormField<int>(
                                     value: _selectedWalletId,
                                     decoration: const InputDecoration(border: InputBorder.none, prefixIcon: Icon(Icons.account_balance_wallet_outlined), contentPadding: EdgeInsets.all(16)),
-                                    hint: const Text('Select Wallet'),
+                                    hint: Text(AppTranslations.getText('select_wallet', lang)),
                                     items: accounts.map((a) => DropdownMenuItem(value: a.id, child: Text(a.name))).toList(),
                                     onChanged: (v) => setState(() => _selectedWalletId = v),
                                   ),
@@ -327,7 +314,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                                       return DropdownButtonFormField<int>(
                                         value: _selectedCategoryId,
                                         decoration: const InputDecoration(border: InputBorder.none, prefixIcon: Icon(Icons.category_outlined), contentPadding: EdgeInsets.all(16)),
-                                        hint: const Text('Select Category'),
+                                        hint: Text(AppTranslations.getText('select_category', lang)),
                                         items: categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
                                         onChanged: (v) => setState(() => _selectedCategoryId = v),
                                       );
@@ -341,7 +328,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                         Divider(height: 1, indent: 56, color: Colors.grey.withOpacity(0.2)),
                         TextField(
                           controller: _noteController,
-                          decoration: const InputDecoration(border: InputBorder.none, prefixIcon: Icon(Icons.notes_rounded), hintText: 'Add a note', contentPadding: EdgeInsets.all(16)),
+                          decoration: InputDecoration(border: InputBorder.none, prefixIcon: const Icon(Icons.notes_rounded), hintText: AppTranslations.getText('add_note', lang), contentPadding: const EdgeInsets.all(16)),
                         ),
                       ],
                     ),
@@ -356,7 +343,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
                   onPressed: _isLoading ? null : _saveTransaction,
-                  child: const Text('Save Transaction', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  child: Text(AppTranslations.getText('save_tx', lang), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ),
             ),
@@ -370,13 +357,22 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? Theme.of(context).colorScheme.surface : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))] : [],
         ),
-        child: Text(text, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isSelected ? Theme.of(context).colorScheme.onSurface : Colors.grey.shade600)),
+        child: Center(
+          // [FIX] අකුරු ලොකු වැඩි නම් ඒවා කොටුව ඇතුළට Fit කිරීම
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Text(text, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isSelected ? Theme.of(context).colorScheme.onSurface : Colors.grey.shade600)),
+            ),
+          ),
+        ),
       ),
     );
   }
