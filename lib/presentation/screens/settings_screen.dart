@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/theme_provider.dart';
 import '../providers/database_provider.dart';
 import '../providers/app_lock_provider.dart';
 import '../providers/language_provider.dart';
 import '../../utils/app_translations.dart';
 import '../../services/sms_parser_service.dart';
-import 'sms_analyzer_screen.dart';
+import 'onboarding/splash_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -27,8 +28,31 @@ class SettingsScreen extends ConsumerWidget {
     );
 
     if (confirmed == true) {
-      await ref.read(transactionDaoProvider).resetAllData();
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Data Reset Successful')));
+      // 1. SharedPreferences (Hard Drive / Storage) සම්පූර්ණයෙන්ම මකා දැමීම
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      // 2. Database එකේ ඇති සියලුම Tables 100% ක් හිස් කිරීම
+      final db = ref.read(appDatabaseProvider);
+      for (final table in db.allTables) {
+        await db.delete(table).go();
+      }
+
+      // 3. [නව වෙනස] RAM එකේ (Riverpod) තියෙන Settings ටික බලහත්කාරයෙන් Reset කිරීම
+      ref.invalidate(themeProvider);
+      ref.invalidate(languageProvider);
+      ref.invalidate(appLockProvider);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Factory Reset Successful. Restarting...')));
+
+        // 4. App එක මුල සිට ආරම්භ කිරීම
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const SplashScreen()),
+              (Route<dynamic> route) => false,
+        );
+      }
     }
   }
 
@@ -81,7 +105,24 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 SwitchListTile(title: Text(AppTranslations.getText('enable_app_lock', currentLang)), value: isAppLockEnabled, onChanged: (v) => ref.read(appLockProvider.notifier).setLock(v)),
                 const Divider(),
-                ListTile(leading: const Icon(Icons.sms), title: Text(AppTranslations.getText('sync_sms', currentLang)), subtitle: Text(AppTranslations.getText('sync_sms_desc', currentLang)), onTap: () async { await SmsParserService(ref.read(appDatabaseProvider)).syncRecentBankSms(); }),
+
+                ListTile(
+                    leading: const Icon(Icons.sms),
+                    title: Text(AppTranslations.getText('sync_sms', currentLang)),
+                    subtitle: Text(AppTranslations.getText('sync_sms_desc', currentLang)),
+                    onTap: () async {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Syncing background SMS...')));
+
+                      final prefs = await SharedPreferences.getInstance();
+                      final selectedBanks = prefs.getStringList('selectedBanks') ?? [];
+                      await SmsParserService(ref.read(appDatabaseProvider)).syncRecentBankSms(selectedBanks);
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SMS Sync Completed!')));
+                      }
+                    }
+                ),
+
                 const Divider(),
                 ListTile(leading: const Icon(Icons.delete, color: Colors.red), title: Text(AppTranslations.getText('factory_reset', currentLang), style: const TextStyle(color: Colors.red)), subtitle: Text(AppTranslations.getText('factory_reset_desc', currentLang)), onTap: () => _showResetConfirmationDialog(context, ref, currentLang)),
               ],

@@ -25,13 +25,8 @@ class SmsParserService {
   }
 
   final RegExp _amountRegex = RegExp(r'(?:Rs\.|LKR)\s*([\d,]+\.\d{2}|[\d,]+)', caseSensitive: false);
-
-  // --- BUG 4 FIXED: Robust Direction Extraction ---
   final RegExp _debitRegex = RegExp(r'\b(debited|paid|withdrawn|purchase|deducted|spent)\b', caseSensitive: false);
   final RegExp _creditRegex = RegExp(r'\b(credited|deposited|received|refunded|reversal|reversed|cashback|salary)\b', caseSensitive: false);
-
-  // --- BUG 3 FIXED: Smart ATM Exclusions ---
-  // ATM අසල මේ වචන තිබුණොත් ඒවා ATM මුදල් ගැනීම් නොවේ (උදා: ATM fee, ATM balance)
   final RegExp _atmNoiseRegex = RegExp(r'\b(fee|charge|failed|balance|inquiry)\b', caseSensitive: false);
 
   final Map<RegExp, String> _tier2Regex = {
@@ -54,30 +49,38 @@ class SmsParserService {
     return status.isGranted;
   }
 
-  Future<void> syncRecentBankSms() async {
+  Future<void> syncRecentBankSms(List<String> selectedBanks) async {
     final hasPermission = await requestSmsPermission();
     if (!hasPermission) {
       debugPrint("SMS Permission Denied!");
       return;
     }
 
+    final List<String> targetSenderIds = [];
+    if (selectedBanks.contains('boc')) targetSenderIds.addAll(['BOC', 'BOC_SMS', 'BOC_ALERT']);
+    if (selectedBanks.contains('nsb')) targetSenderIds.addAll(['NSB', 'NSB_SMS']);
+    if (selectedBanks.contains('peoples')) targetSenderIds.addAll(['PEOPLES', 'PEOPLES_BNK']);
+
+    if (targetSenderIds.isEmpty) {
+      debugPrint("No supported banks selected.");
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final lastSyncStr = prefs.getString('last_sms_sync_time');
-    DateTime fetchFrom;
-
-    if (lastSyncStr != null) {
-      fetchFrom = DateTime.parse(lastSyncStr);
-      debugPrint("🔄 Syncing SMS since: $fetchFrom");
-    } else {
-      fetchFrom = DateTime.now().subtract(const Duration(days: 30));
-      debugPrint("🆕 First time sync. Fetching last 30 days.");
-    }
+    DateTime fetchFrom = lastSyncStr != null
+        ? DateTime.parse(lastSyncStr)
+        : DateTime.now().subtract(const Duration(days: 30));
 
     final messages = await _query.querySms(kinds: [SmsQueryKind.inbox], sort: true);
     DateTime? newestSmsDate;
 
     for (var msg in messages) {
-      if (msg.date != null && msg.date!.isAfter(fetchFrom)) {
+      final sender = msg.sender?.toUpperCase() ?? '';
+
+      bool isTargetBank = targetSenderIds.any((target) => sender.contains(target));
+
+      if (isTargetBank && msg.date != null && msg.date!.isAfter(fetchFrom)) {
         await _parseAndSaveMessage(msg);
 
         if (newestSmsDate == null || msg.date!.isAfter(newestSmsDate!)) {
@@ -136,11 +139,9 @@ class SmsParserService {
         final amountStr = amountMatch.group(1)?.replaceAll(',', '');
         final amount = double.tryParse(amountStr ?? '0') ?? 0;
 
-        // හරියටම Debit ද Credit ද යන්න වෙන් කර ගැනීම
         final isExpense = _debitRegex.hasMatch(body);
         final isIncome = _creditRegex.hasMatch(body);
 
-        // වියදමක්වත් ආදායමක්වත් නොවේ නම් (උදා: OTP එකක් නම්) එය මඟහරියි
         if (isExpense || isIncome) {
           final isTxIncome = isIncome;
           final finalAmount = isTxIncome ? amount : -amount;
@@ -154,10 +155,9 @@ class SmsParserService {
 
           final normalizedDesc = _normalizeText(rawDescription);
 
-          // Smart ATM Detection
           bool isAtm = !isTxIncome &&
               (body.toUpperCase().contains('ATM') || normalizedDesc.contains('ATM')) &&
-              !_atmNoiseRegex.hasMatch(body); // "ATM fee" වැනි දේවල් Transfer නොකරයි
+              !_atmNoiseRegex.hasMatch(body);
 
           if (isAtm) {
             final cashWalletId = await _getCashWalletId();

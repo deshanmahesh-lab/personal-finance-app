@@ -3,6 +3,7 @@ import '../../data/datasources/app_database.dart';
 import '../../data/datasources/daos/account_dao.dart';
 import '../../data/datasources/daos/category_dao.dart';
 import '../../data/datasources/daos/transaction_dao.dart';
+import '../../services/sms_parser_service.dart';
 
 // 1. Core Database Provider
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -24,4 +25,9 @@ final categoryDaoProvider = Provider<CategoryDao>((ref) {
 // 4. Transaction DAO Provider
 final transactionDaoProvider = Provider<TransactionDao>((ref) {
   return ref.watch(appDatabaseProvider).transactionDao;
+});
+
+// 5. SMS Parser Service Provider
+final smsParserServiceProvider = Provider<SmsParserService>((ref) {
+  return SmsParserService(ref.watch(appDatabaseProvider));
 });

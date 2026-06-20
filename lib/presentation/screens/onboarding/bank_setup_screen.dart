@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/language_provider.dart';
 import '../../../utils/app_translations.dart';
-import 'initialization_screen.dart';
+import 'initial_balances_screen.dart'; // [නව වෙනස] අලුත් ගොනුව import කිරීම
 
 class BankSetupScreen extends ConsumerStatefulWidget {
   const BankSetupScreen({super.key});
@@ -96,7 +96,8 @@ class _BankSetupScreenState extends ConsumerState<BankSetupScreen> {
                 child: ElevatedButton(
                   onPressed: canProceed ? () {
                     final selectedList = _selectedBanks.entries.where((e) => e.value).map((e) => e.key).toList();
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => InitializationScreen(selectedBanks: selectedList)));
+                    // [නව වෙනස] InitialBalancesScreen වෙත ගමන් කිරීම
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => InitialBalancesScreen(selectedBanks: selectedList)));
                   } : null,
                   style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), backgroundColor: Theme.of(context).primaryColor, foregroundColor: Colors.white, disabledBackgroundColor: Colors.grey.shade300),
                   child: Text(btnText, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),

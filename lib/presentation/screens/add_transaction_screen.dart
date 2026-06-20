@@ -55,6 +55,22 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     super.dispose();
   }
 
+  // [නව වෙනස] Duplicates ඉවත් කිරීමේ Function එක
+  List<Account> _getUniqueAccounts(List<Account> accounts) {
+    final unique = <String, Account>{};
+    for (var acc in accounts) {
+      if (!unique.containsKey(acc.name)) {
+        unique[acc.name] = acc;
+      } else {
+        // පරණ Transaction එකක් Edit කරද්දී, Dropdown Crash වීම වැළැක්වීමට අදාළ ID එකම තබාගැනීම
+        if (acc.id == _selectedWalletId || acc.id == _fromWalletId || acc.id == _toWalletId) {
+          unique[acc.name] = acc;
+        }
+      }
+    }
+    return unique.values.toList();
+  }
+
   Future<bool?> _showBudgetWarningDialog(String categoryName, double limit, double projectedTotal) {
     final lang = ref.read(languageProvider);
     return showDialog<bool>(
@@ -228,12 +244,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         backgroundColor: Colors.transparent, elevation: 0,
         leading: IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.pop(context)),
         title: Container(
-          width: double.infinity, // [FIX] Available space එක සම්පූර්ණයෙන්ම ගැනීම
+          width: double.infinity,
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(24)),
           child: Row(
             children: [
-              // [FIX] Expanded හරහා ඉඩ සමානව බෙදා දීම
               Expanded(child: _buildSimpleTab(AppTranslations.getText('expense', lang), _transactionType == 'expense', () => setState(() => _transactionType = 'expense'))),
               Expanded(child: _buildSimpleTab(AppTranslations.getText('income', lang), _transactionType == 'income', () => setState(() => _transactionType = 'income'))),
               Expanded(child: _buildSimpleTab(AppTranslations.getText('transfer', lang), _transactionType == 'transfer', () => setState(() => _transactionType = 'transfer'))),
@@ -270,7 +285,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                         StreamBuilder<List<Account>>(
                           stream: ref.watch(accountDaoProvider).watchAllAccounts(),
                           builder: (context, snapshot) {
-                            final accounts = snapshot.data ?? [];
+                            final rawAccounts = snapshot.data ?? [];
+                            // [නව වෙනස] අනුපිටපත් ඉවත් කළ Wallets ලැයිස්තුව ලබා ගැනීම
+                            final accounts = _getUniqueAccounts(rawAccounts);
 
                             if (_transactionType == 'transfer') {
                               return Column(
@@ -364,7 +381,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))] : [],
         ),
         child: Center(
-          // [FIX] අකුරු ලොකු වැඩි නම් ඒවා කොටුව ඇතුළට Fit කිරීම
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: Padding(
