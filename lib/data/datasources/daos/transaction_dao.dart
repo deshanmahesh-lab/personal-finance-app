@@ -213,6 +213,46 @@ class TransactionDao extends DatabaseAccessor<AppDatabase> with _$TransactionDao
     });
   }
 
+  // --- [නව වෙනස] Phase 5: EMA Predictive Data Fetching ---
+  Future<Map<int, double>> getDailyExpensesForMonth(DateTime month) async {
+    final startOfMonth = DateTime(month.year, month.month, 1);
+    final endOfMonth = DateTime(month.year, month.month + 1, 1);
+
+    final query = select(transactions)
+      ..where((t) => t.date.isBiggerOrEqualValue(startOfMonth) & t.date.isSmallerThanValue(endOfMonth));
+
+    final results = await query.get();
+
+    // අදාළ මාසයේ ඇති මුළු දින ගණන සොයා ගැනීම (උදා: 28, 30, 31)
+    final int daysInMonth = DateTime(month.year, month.month + 1, 0).day;
+
+    // සෑම දිනකටම මූලික අගය 0.0 ලෙස සකස් කිරීම
+    final Map<int, double> dailyTotals = {for (var i = 1; i <= daysInMonth; i++) i: 0.0};
+
+    for (var tx in results) {
+      if (tx.isTransfer) continue;
+
+      double expenseAmount = 0;
+      if (tx.isRefund) {
+        expenseAmount = -tx.amount.abs(); // Refund එකක් නම් වියදම අඩු කරයි
+      } else if (tx.amount < 0) {
+        expenseAmount = tx.amount.abs(); // සැබෑ වියදම
+      }
+
+      if (expenseAmount != 0) {
+        final day = tx.date.day;
+        dailyTotals[day] = (dailyTotals[day] ?? 0.0) + expenseAmount;
+      }
+    }
+
+    // Refund වැඩි වීමක් නිසා දෛනික අගය සෘණ (negative) වීම වැලැක්වීම
+    dailyTotals.forEach((key, value) {
+      if (value < 0) dailyTotals[key] = 0.0;
+    });
+
+    return dailyTotals;
+  }
+
   Future<void> resetAllData() async {
     await this.transaction(() async {
       await delete(transactions).go();
@@ -222,8 +262,6 @@ class TransactionDao extends DatabaseAccessor<AppDatabase> with _$TransactionDao
 
   // --- BUG 1 FIXED: High-Precision Duplicate Checking ---
   Future<bool> isTransactionExists(double amount, String description, DateTime date) async {
-    // පළමු අකුරු 5 සහ දවස පරීක්ෂා කිරීම ඉවත් කර ඇත.
-    // ඒ වෙනුවට SMS එක පැමිණි නිශ්චිත වේලාව (විනාඩියක පරතරයක් සහිතව) සහ මුදල පරීක්ෂා කරයි.
     final windowStart = date.subtract(const Duration(minutes: 1));
     final windowEnd = date.add(const Duration(minutes: 1));
 

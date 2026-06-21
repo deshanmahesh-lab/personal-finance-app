@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../providers/database_provider.dart';
-import '../providers/language_provider.dart'; // [නව වෙනස]
-import '../../utils/app_translations.dart'; // [නව වෙනස]
+import '../providers/language_provider.dart';
+import '../../utils/app_translations.dart';
+// [නව වෙනස] EMA Forecast Service එක Import කිරීම
+import '../../services/ema_forecast_service.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
   const AnalyticsScreen({super.key});
@@ -57,7 +59,12 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
         child: Column(
           children: [
             _buildPremiumHeader(primaryColor),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+
+            // [නව වෙනස] මාසික වියදම් බලන විට පමණක් Forecast Card එක පෙන්වීම
+            if (!_isYearlyView && !_isIncome) _buildEmaForecastCard(),
+
+            const SizedBox(height: 12),
             _buildSlidingToggles(primaryColor),
             const SizedBox(height: 24),
             Expanded(
@@ -76,6 +83,92 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // [නව වෙනස] EMA Forecast Card Widget එක
+  Widget _buildEmaForecastCard() {
+    final isCurrentMonth = _currentMonth.month == DateTime.now().month && _currentMonth.year == DateTime.now().year;
+
+    // දැනට පවතින මාසය නොවේ නම් Forecast එක පෙන්වීම අවශ්‍ය නැත
+    if (!isCurrentMonth) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: FutureBuilder<ForecastResult>(
+        // Provider හරහා Service එක call කිරීම
+        future: ref.read(emaForecastProvider).getMonthlyForecast(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: LinearProgressIndicator());
+          }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return const SizedBox.shrink();
+          }
+
+          final result = snapshot.data!;
+
+          // AI Logic: Forecast එක අතිශය වැඩි නම් Danger, සාමාන්‍ය නම් Safe පෙන්වීම
+          // (මෙතැනදී අපි උපකල්පනය කරනවා යම් කිසි Budget එකක් නැත්නම් 1.5x වඩා වියදම ගියොත් Warning කියලා)
+          Color statusColor = Colors.green.shade600;
+          String statusText = "On Track";
+          IconData statusIcon = Icons.check_circle_outline;
+
+          if (result.forecastedTotal > (result.currentSpent * 1.5) && result.currentSpent > 0) {
+            statusColor = Colors.orange.shade600;
+            statusText = "High Spending Velocity";
+            statusIcon = Icons.warning_amber_rounded;
+          }
+
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: statusColor.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.auto_graph_rounded, color: statusColor, size: 20),
+                    const SizedBox(width: 8),
+                    const Text("AI Forecast (Month-End)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Projected Total", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text('Rs. ${result.forecastedTotal.toStringAsFixed(0)}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: statusColor)),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(statusIcon, color: statusColor, size: 14),
+                            const SizedBox(width: 4),
+                            Text(statusText, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text('Velocity: Rs. ${result.currentVelocity.toStringAsFixed(0)} /day', style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

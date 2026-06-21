@@ -6,6 +6,8 @@ import '../providers/database_provider.dart';
 import '../providers/language_provider.dart';
 import '../../utils/app_translations.dart';
 import '../../data/datasources/daos/transaction_dao.dart';
+// [නව වෙනස] Prediction Service එක import කිරීම
+import '../../services/category_prediction_service.dart';
 
 class AddTransactionScreen extends ConsumerStatefulWidget {
   final TransactionWithCategory? transactionToEdit;
@@ -27,6 +29,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   int? _toWalletId;
 
   bool _isLoading = false;
+  bool _isAiSuggested = false; // [නව වෙනස] AI ලේබලය පෙන්වීමට
 
   @override
   void initState() {
@@ -45,6 +48,26 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         _selectedCategoryId = tx.categoryId;
         _selectedWalletId = tx.accountId;
       }
+    } else {
+      // [නව වෙනස] අලුත් වියදමක් නම් AI මගින් Category එක අනුමාන කිරීම
+      _runAiPrediction();
+    }
+  }
+
+  // [නව වෙනස] AI Prediction Function එක
+  Future<void> _runAiPrediction() async {
+    // ගණනය කිරීම් සඳහා කුඩා වේලාවක් ලබා දීම
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (!mounted) return;
+
+    final predictionService = ref.read(categoryPredictionProvider);
+    final predictedId = await predictionService.predictLikelyCategory();
+
+    if (predictedId != null && mounted) {
+      setState(() {
+        _selectedCategoryId = predictedId;
+        _isAiSuggested = true;
+      });
     }
   }
 
@@ -55,14 +78,12 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     super.dispose();
   }
 
-  // [නව වෙනස] Duplicates ඉවත් කිරීමේ Function එක
   List<Account> _getUniqueAccounts(List<Account> accounts) {
     final unique = <String, Account>{};
     for (var acc in accounts) {
       if (!unique.containsKey(acc.name)) {
         unique[acc.name] = acc;
       } else {
-        // පරණ Transaction එකක් Edit කරද්දී, Dropdown Crash වීම වැළැක්වීමට අදාළ ID එකම තබාගැනීම
         if (acc.id == _selectedWalletId || acc.id == _fromWalletId || acc.id == _toWalletId) {
           unique[acc.name] = acc;
         }
@@ -249,9 +270,25 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           decoration: BoxDecoration(color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5), borderRadius: BorderRadius.circular(24)),
           child: Row(
             children: [
-              Expanded(child: _buildSimpleTab(AppTranslations.getText('expense', lang), _transactionType == 'expense', () => setState(() => _transactionType = 'expense'))),
-              Expanded(child: _buildSimpleTab(AppTranslations.getText('income', lang), _transactionType == 'income', () => setState(() => _transactionType = 'income'))),
-              Expanded(child: _buildSimpleTab(AppTranslations.getText('transfer', lang), _transactionType == 'transfer', () => setState(() => _transactionType = 'transfer'))),
+              Expanded(child: _buildSimpleTab(AppTranslations.getText('expense', lang), _transactionType == 'expense', () {
+                setState(() {
+                  _transactionType = 'expense';
+                  // Type එක මාරු කරද්දී අලුතින්ම AI Prediction එකක් ගන්නවා
+                  if (widget.transactionToEdit == null) _runAiPrediction();
+                });
+              })),
+              Expanded(child: _buildSimpleTab(AppTranslations.getText('income', lang), _transactionType == 'income', () {
+                setState(() {
+                  _transactionType = 'income';
+                  _isAiSuggested = false; // Income වලට AI නෑ
+                });
+              })),
+              Expanded(child: _buildSimpleTab(AppTranslations.getText('transfer', lang), _transactionType == 'transfer', () {
+                setState(() {
+                  _transactionType = 'transfer';
+                  _isAiSuggested = false; // Transfers වලට AI නෑ
+                });
+              })),
             ],
           ),
         ),
@@ -286,7 +323,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                           stream: ref.watch(accountDaoProvider).watchAllAccounts(),
                           builder: (context, snapshot) {
                             final rawAccounts = snapshot.data ?? [];
-                            // [නව වෙනස] අනුපිටපත් ඉවත් කළ Wallets ලැයිස්තුව ලබා ගැනීම
                             final accounts = _getUniqueAccounts(rawAccounts);
 
                             if (_transactionType == 'transfer') {
@@ -330,10 +366,27 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                                       final categories = catSnapshot.data ?? [];
                                       return DropdownButtonFormField<int>(
                                         value: _selectedCategoryId,
-                                        decoration: const InputDecoration(border: InputBorder.none, prefixIcon: Icon(Icons.category_outlined), contentPadding: EdgeInsets.all(16)),
+                                        decoration: InputDecoration(
+                                          border: InputBorder.none,
+                                          prefixIcon: const Icon(Icons.category_outlined),
+                                          contentPadding: const EdgeInsets.all(16),
+                                          // [නව වෙනස] AI ලේබලය පෙන්වීම
+                                          suffix: _isAiSuggested && _transactionType == 'expense'
+                                              ? Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                            decoration: BoxDecoration(color: Colors.purple.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                                            child: const Text('✨ AI Suggested', style: TextStyle(color: Colors.purple, fontSize: 10, fontWeight: FontWeight.bold)),
+                                          )
+                                              : null,
+                                        ),
                                         hint: Text(AppTranslations.getText('select_category', lang)),
                                         items: categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-                                        onChanged: (v) => setState(() => _selectedCategoryId = v),
+                                        onChanged: (v) {
+                                          setState(() {
+                                            _selectedCategoryId = v;
+                                            _isAiSuggested = false; // User විසින් වෙනස් කළහොත් AI ලේබලය මකා දමයි
+                                          });
+                                        },
                                       );
                                     },
                                   ),

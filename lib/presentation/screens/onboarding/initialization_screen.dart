@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:drift/drift.dart' as drift; // Database insert සඳහා අවශ්‍යයි
+import 'package:drift/drift.dart' as drift;
 import '../main_screen.dart';
 import '../lock_screen.dart';
 import '../../providers/language_provider.dart';
@@ -11,7 +11,7 @@ import '../../../data/datasources/app_database.dart';
 
 class InitializationScreen extends ConsumerStatefulWidget {
   final List<String> selectedBanks;
-  final Map<String, double> initialBalances; // [නව වෙනස] අලුත් Parameter එක
+  final Map<String, double> initialBalances;
 
   const InitializationScreen({
     super.key,
@@ -43,11 +43,10 @@ class _InitializationScreenState extends ConsumerState<InitializationScreen> {
 
     setState(() => _currentStatus = AppTranslations.getText('saving_data', currentLanguage));
 
-    // 2. SharedPreferences සැකසීම (Forward Tracking - අදින් පසු පමණක් SMS කියවීම)
+    // 2. SharedPreferences සැකසීම
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isOnboardingCompleted', true);
     await prefs.setStringList('selectedBanks', widget.selectedBanks);
-    // [ක්‍රමෝපාය] අද දවස "last_sms_sync_time" ලෙස සටහන් කිරීමෙන් පරණ SMS කියවීම වලක්වයි
     await prefs.setString('last_sms_sync_time', DateTime.now().toIso8601String());
 
     setState(() => _currentStatus = AppTranslations.getText('ready', currentLanguage));
@@ -62,22 +61,23 @@ class _InitializationScreenState extends ConsumerState<InitializationScreen> {
     );
   }
 
-  // අලුත් Wallets DataBase එකට ඇතුලත් කිරීමේ Function එක
+  // [FIXED] Wallet Duplication සහ Balance Reset Bug එක නිවැරදි කිරීම
   Future<void> _setupInitialWallets(AppDatabase db) async {
     final accountDao = db.accountDao;
+    final txDao = db.transactionDao;
 
     // Cash Wallet
     if (widget.initialBalances.containsKey('cash')) {
-      await accountDao.insertAccount(
-          AccountsCompanion.insert(
-            name: 'My Wallet',
-            type: 'cash',
-            initialBalance: drift.Value(widget.initialBalances['cash']!),
-          )
-      );
+      final double amount = widget.initialBalances['cash']!;
+      // Wallet එක දැනටමත් ඇත්නම් එය ලබාගැනීම (Duplicate වීම වළක්වයි)
+      final accId = await accountDao.getOrCreateAccount('My Wallet', 'cash');
+
+      if (amount > 0) {
+        await _injectInitialBalanceTransaction(txDao, accId, amount);
+      }
     }
 
-    // Bank Wallets (නියම බැංකු නම් වලින්)
+    // Bank Wallets
     final Map<String, String> bankOfficialNames = {
       'boc': 'Bank of Ceylon',
       'nsb': 'National Savings Bank',
@@ -86,15 +86,32 @@ class _InitializationScreenState extends ConsumerState<InitializationScreen> {
 
     for (var bankId in widget.selectedBanks) {
       if (widget.initialBalances.containsKey(bankId)) {
-        await accountDao.insertAccount(
-            AccountsCompanion.insert(
-              name: bankOfficialNames[bankId] ?? bankId.toUpperCase(),
-              type: 'bank',
-              initialBalance: drift.Value(widget.initialBalances[bankId]!),
-            )
-        );
+        final double amount = widget.initialBalances[bankId]!;
+        final bankName = bankOfficialNames[bankId] ?? bankId.toUpperCase();
+
+        final accId = await accountDao.getOrCreateAccount(bankName, 'bank');
+
+        if (amount > 0) {
+          await _injectInitialBalanceTransaction(txDao, accId, amount);
+        }
       }
     }
+  }
+
+  // [CRITICAL FIX] Initial Balance එක System Transaction එකක් ලෙස Database එකට යැවීම
+  Future<void> _injectInitialBalanceTransaction(dynamic txDao, int accId, double amount) async {
+    // Analytics වලට බලපෑම් නොකිරීම සඳහා isTransfer: true ලෙස යොදා ඇත.
+    await txDao.addTransactionAndUpdateBalance(
+        TransactionsCompanion.insert(
+          description: 'Initial Balance',
+          amount: amount,
+          date: DateTime.now(),
+          accountId: accId,
+          isTransfer: const drift.Value(true),
+          categoryId: const drift.Value(null),
+        ),
+        accId
+    );
   }
 
   @override

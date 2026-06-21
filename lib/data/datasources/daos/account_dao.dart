@@ -25,6 +25,16 @@ class AccountDao extends DatabaseAccessor<AppDatabase> with _$AccountDaoMixin {
     return (select(accounts)..where((a) => a.id.equals(id))).getSingle();
   }
 
+  // [නව වෙනස] Wallet එකක් Duplicate වීම වැළැක්වීමේ Smart Function එක
+  Future<int> getOrCreateAccount(String name, String type) async {
+    final existing = await (select(accounts)..where((a) => a.name.equals(name))).getSingleOrNull();
+    if (existing != null) return existing.id;
+
+    return await into(accounts).insert(
+        AccountsCompanion.insert(name: name, type: type, initialBalance: const Value(0.0))
+    );
+  }
+
   Stream<double> watchTotalBalance() {
     return select(accounts).watch().map((accountsList) {
       return accountsList.fold(0.0, (sum, item) => sum + item.initialBalance);
@@ -49,7 +59,8 @@ class AccountDao extends DatabaseAccessor<AppDatabase> with _$AccountDaoMixin {
         .write(AccountsCompanion(initialBalance: Value(calculatedBalance)));
   }
 
+  // [නව වෙනස] පැරණි Accounts වල balance එක 0 කරනවා වෙනුවට සම්පූර්ණයෙන්ම මකා දැමීම
   Future<void> resetAllAccounts() async {
-    await update(accounts).write(const AccountsCompanion(initialBalance: Value(0.0)));
+    await delete(accounts).go();
   }
 }
