@@ -13,13 +13,19 @@ class PermissionsScreen extends ConsumerStatefulWidget {
 }
 
 class _PermissionsScreenState extends ConsumerState<PermissionsScreen> {
+  // වර්ණ සැකසුම්
+  final Color primaryBlue = const Color(0xFF182D92);
+  final Color backgroundLight = const Color(0xFFFCFDFC);
+  final Color successGreen = const Color(0xFF10B981);
+
+  // අවසර ලබා දී ඇතිදැයි පරීක්ෂා කරන විචල්‍යයන්
   bool _smsPermissionGranted = false;
   bool _notificationPermissionGranted = false;
 
   @override
   void initState() {
     super.initState();
-    _checkInitialPermissions();
+    _checkInitialPermissions(); // තිරය විවෘත වනවිටම අවසර පරීක්ෂා කිරීම
   }
 
   Future<void> _checkInitialPermissions() async {
@@ -56,6 +62,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen> {
     }
   }
 
+  // Settings වෙත යොමු කරන Dialog එක (භාෂාවට අනුව පරිවර්තනය වේ)
   void _showSettingsDialog(String permissionName) {
     final currentLang = ref.read(languageProvider);
 
@@ -90,9 +97,8 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final canProceed = _smsPermissionGranted;
+    // 1. තේරූ භාෂාවට අදාළව තිරයේ වචන (Translations) ලබා ගැනීම
     final currentLanguage = ref.watch(languageProvider);
-
     final mainTitle = AppTranslations.getText('permissions_title', currentLanguage);
     final subTitle = AppTranslations.getText('permissions_desc', currentLanguage);
     final smsTitle = AppTranslations.getText('sms_perm_title', currentLanguage);
@@ -101,67 +107,142 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen> {
     final notiDesc = AppTranslations.getText('noti_perm_desc', currentLanguage);
     final btnText = AppTranslations.getText('continue_btn', currentLanguage);
 
+    // 2. අලංකාර වර්ණ සැකසුම් (Light / Dark Mode සඳහා)
+    final Brightness brightness = Theme.of(context).brightness;
+    final bool isDark = brightness == Brightness.dark;
+    final Color backgroundColor = isDark ? const Color(0xFF121212) : backgroundLight;
+    final Color textPrimary = isDark ? Colors.white : const Color(0xFF111827);
+    final Color textSecondary = isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+
     return Scaffold(
+      backgroundColor: backgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios, size: 24),
-                  onPressed: () => Navigator.pop(context),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              Text(mainTitle, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, height: 1.3)),
-              const SizedBox(height: 12),
-              Text(subTitle, style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
-              const SizedBox(height: 40),
-
-              _PermissionCard(
-                icon: Icons.sms_outlined,
-                title: smsTitle,
-                description: smsDesc,
-                isGranted: _smsPermissionGranted,
-                onTap: _smsPermissionGranted ? null : _requestSmsPermission,
-              ),
-              const SizedBox(height: 16),
-              _PermissionCard(
-                icon: Icons.notifications_active_outlined,
-                title: notiTitle,
-                description: notiDesc,
-                isGranted: _notificationPermissionGranted,
-                onTap: _notificationPermissionGranted ? null : _requestNotificationPermission,
-              ),
-
-              const Spacer(),
-
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: canProceed ? () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SecuritySetupScreen()),
-                    );
-                  } : null,
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey.shade300,
+        bottom: true,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  // ආපසු යාමේ බොත්තම
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                    color: textPrimary,
+                    splashRadius: 24,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
-                  child: Text(btnText, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                ),
+                  const SizedBox(height: 32),
+
+                  // මාතෘකාව
+                  Text(
+                    mainTitle,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: textPrimary,
+                      height: 1.15,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // උප මාතෘකාව
+                  Text(
+                    subTitle,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // SMS අවසර කාඩ්පත
+                  PermissionCard(
+                    title: smsTitle,
+                    description: smsDesc,
+                    icon: Icons.sms_outlined,
+                    grantedIcon: Icons.check_circle,
+                    isGranted: _smsPermissionGranted,
+                    successGreen: successGreen,
+                    primaryBlue: primaryBlue,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                    onTap: _smsPermissionGranted ? () {} : _requestSmsPermission,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Notification අවසර කාඩ්පත
+                  PermissionCard(
+                    title: notiTitle,
+                    description: notiDesc,
+                    icon: Icons.notifications_outlined,
+                    grantedIcon: Icons.check_circle,
+                    isGranted: _notificationPermissionGranted,
+                    successGreen: successGreen,
+                    primaryBlue: primaryBlue,
+                    textPrimary: textPrimary,
+                    textSecondary: textSecondary,
+                    onTap: _notificationPermissionGranted ? () {} : _requestNotificationPermission,
+                  ),
+                  const Spacer(),
+
+                  // Continue බොත්තම
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeOutCubic,
+                    width: double.infinity,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: _smsPermissionGranted ? primaryBlue : const Color(0xFFE5E7EB),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: _smsPermissionGranted
+                          ? [
+                        BoxShadow(
+                          color: primaryBlue.withOpacity(0.35),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ]
+                          : [],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _smsPermissionGranted
+                            ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const SecuritySetupScreen()),
+                          );
+                        }
+                            : null,
+                        borderRadius: BorderRadius.circular(16),
+                        splashColor: Colors.white.withOpacity(0.15),
+                        highlightColor: Colors.white.withOpacity(0.08),
+                        child: Center(
+                          child: Text(
+                            btnText,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: _smsPermissionGranted ? Colors.white : const Color(0xFF9CA3AF),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -169,42 +250,120 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen> {
   }
 }
 
-class _PermissionCard extends StatelessWidget {
-  final IconData icon;
+// අවසර කාඩ්පත් සඳහා වන අලංකාර සැකිල්ල
+class PermissionCard extends StatelessWidget {
   final String title;
   final String description;
+  final IconData icon;
+  final IconData grantedIcon;
   final bool isGranted;
-  final VoidCallback? onTap;
+  final Color successGreen;
+  final Color primaryBlue;
+  final Color textPrimary;
+  final Color textSecondary;
+  final VoidCallback onTap;
 
-  const _PermissionCard({required this.icon, required this.title, required this.description, required this.isGranted, required this.onTap});
+  const PermissionCard({
+    super.key,
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.grantedIcon,
+    required this.isGranted,
+    required this.successGreen,
+    required this.primaryBlue,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: isGranted ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.05),
-          border: Border.all(color: isGranted ? Colors.green : Colors.grey.shade300, width: 2),
-          borderRadius: BorderRadius.circular(16),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        color: isGranted ? successGreen.withOpacity(0.05) : Colors.transparent,
+        border: Border.all(
+          color: isGranted ? successGreen : const Color(0xFFE5E7EB),
+          width: 1.5,
         ),
-        child: Row(
-          children: [
-            Icon(isGranted ? Icons.check_circle : icon, color: isGranted ? Colors.green : Colors.grey.shade600, size: 32),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isGranted ? Colors.green.shade700 : null)),
-                  const SizedBox(height: 4),
-                  Text(description, style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
-                ],
-              ),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          splashColor: primaryBlue.withOpacity(0.08),
+          highlightColor: primaryBlue.withOpacity(0.04),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: isGranted
+                        ? successGreen.withOpacity(0.12)
+                        : const Color(0xFFF3F4F6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 240),
+                    transitionBuilder: (child, animation) {
+                      return ScaleTransition(scale: animation, child: child);
+                    },
+                    child: Icon(
+                      isGranted ? grantedIcon : icon,
+                      key: ValueKey<bool>(isGranted),
+                      color: isGranted ? successGreen : const Color(0xFF6B7280),
+                      size: 24,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w600,
+                          color: textPrimary,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                AnimatedOpacity(
+                  opacity: isGranted ? 0.0 : 1.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(
+                    Icons.chevron_right,
+                    color: Color(0xFFD1D5DB),
+                    size: 24,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
