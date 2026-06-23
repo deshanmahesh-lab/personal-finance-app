@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../providers/theme_provider.dart';
 import '../providers/database_provider.dart';
 import '../providers/app_lock_provider.dart';
@@ -11,6 +12,9 @@ import '../../utils/app_translations.dart';
 import '../../services/sms_parser_service.dart';
 import '../../services/google_drive_backup_service.dart';
 import 'onboarding/splash_screen.dart';
+
+// [නව වෙනස] Manage Accounts තිරය Import කිරීම
+import 'manage_accounts_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -129,7 +133,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // සජීවීව State ලබා ගැනීම
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentLang = ref.watch(languageProvider);
     final currentTheme = ref.watch(themeProvider);
@@ -141,7 +144,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final secondaryText = isDark ? Colors.white60 : const Color(0xFF6B7280);
     final dividerColor = isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFEFF1F4);
 
-    // පරිවර්තනය වූ වචන
     final String themeName = currentTheme == ThemeMode.system
         ? AppTranslations.getText('system_default', currentLang)
         : (currentTheme == ThemeMode.dark
@@ -188,7 +190,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                       const SizedBox(height: 28),
 
-                      // 2. CLOUD BACKUP SECTION
+                      // 2. FINANCE & ACCOUNTS SECTION [නව වෙනස]
+                      _sectionLabel('FINANCE', secondaryText),
+                      _buildGroup(cardColor, dividerColor, [
+                        _SettingItem(
+                          iconBg: const Color(0xFF3B82F6).withOpacity(0.14),
+                          iconColor: const Color(0xFF3B82F6),
+                          icon: Icons.account_balance_wallet_rounded,
+                          title: AppTranslations.getText('my_wallets', currentLang) == 'my_wallets' ? 'Manage Wallets' : AppTranslations.getText('my_wallets', currentLang),
+                          subtitle: 'Add, Edit, or Remove Bank & Cash Accounts',
+                          trailing: Icon(Icons.chevron_right_rounded, color: secondaryText.withOpacity(0.6)),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const ManageAccountsScreen()),
+                            );
+                          },
+                        ),
+                      ], primaryText),
+
+                      const SizedBox(height: 28),
+
+                      // 3. CLOUD BACKUP SECTION
                       _sectionLabel('CLOUD BACKUP', secondaryText),
                       _buildGroup(cardColor, dividerColor, [
                         _SettingItem(
@@ -221,7 +244,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
                       const SizedBox(height: 28),
 
-                      // 3. SECURITY & DATA SECTION
+                      // 4. SECURITY & DATA SECTION
                       _sectionLabel(AppTranslations.getText('security_data', currentLang).toUpperCase(), secondaryText),
                       _buildGroup(cardColor, dividerColor, [
                         _SettingItem(
@@ -532,9 +555,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           CupertinoDialogAction(
             isDestructiveAction: true,
             onPressed: () async {
-              Navigator.pop(context); // Close dialog
-
-              // සැබෑ දත්ත මැකීමේ ක්‍රියාවලිය
+              Navigator.pop(context);
               final prefs = await SharedPreferences.getInstance();
               await prefs.clear();
 
